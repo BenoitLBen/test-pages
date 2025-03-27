@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spinning Color Wheel</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        #wheelCanvas {
+            border: 2px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="wheelCanvas" width="400" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = Math.min(centerX, centerY) * 0.8;
+        let rotation = 0;
+
+        function drawWheel() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const segments = 36; // Number of color segments
+            const angleIncrement = (2 * Math.PI) / segments;
+
+            for (let i = 0; i < segments; i++) {
+                const startAngle = i * angleIncrement + rotation;
+                const endAngle = (i + 1) * angleIncrement + rotation;
+
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.closePath();
+
+                const hue = (i / segments) * 360; // Hue values from 0 to 360
+                ctx.fillStyle = `hsl(${hue}, 100%, 50%)`; // Vivid colors
+                ctx.fill();
+            }
+
+            rotation += 0.01; // Adjust rotation speed here
+            requestAnimationFrame(drawWheel);
+        }
+
+        drawWheel();
+    </script>
+</body>
+</html>
