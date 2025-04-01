@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas Animation</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            overflow: hidden; /* Prevent scrollbars during animation */
+        }
+        canvas {
+            background-color: #333; /* Dark background for better contrast */
+            display: block; /* Prevent extra space below canvas */
+            /* Make canvas resizable, but with a maximum size */
+            max-width: 800px;  /* Maximum width */
+            max-height: 600px; /* Maximum height */
+            width: 100vw;       /* Responsive width */
+            height: 100vh;      /* Responsive height */
+            min-width: 300px;  /* Ensure a minimum width */
+            min-height: 200px; /* Ensure a minimum height */
+        }
+    </style>
+</head>
+<body>
+    <canvas id="myCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('myCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas dimensions initially and on resize
+        function resizeCanvas() {
+            canvas.width = Math.min(window.innerWidth, 800);  // Max width of 800px
+            canvas.height = Math.min(window.innerHeight, 600); // Max height of 600px
+        }
+
+        resizeCanvas(); // Initial resize
+        window.addEventListener('resize', resizeCanvas); // Resize on window resize
+
+
+
+        // --- Circle Drawing Function (with memory allocation for colors) ---
+        function drawSpinningCircle(x, y, radius, angle, phaseOffset) {
+            const numberOfSegments = 60;  // More segments for smoother color transitions
+            const segmentAngle = (2 * Math.PI) / numberOfSegments;
+
+            // --- Color Management: Create a new array of colors for each circle ---
+            // This is the key to demonstrating the memory allocation.  Each circle
+            // gets its *own* color array.
+            const colors = [];
+            for (let i = 0; i < numberOfSegments; i++) {
+                // Hue varies based on segment index and a phase offset, making each circle's colors unique
+                const hue = (i * (360 / numberOfSegments) + phaseOffset) % 360;
+                colors.push(`hsl(${hue}, 100%, 50%)`); // Store the color string
+            }
+
+
+            // --- Draw the segmented circle ---
+            for (let i = 0; i < numberOfSegments; i++) {
+                const startAngle = angle + i * segmentAngle;
+                const endAngle = angle + (i + 1) * segmentAngle;
+
+                ctx.beginPath();
+                ctx.arc(x, y, radius, startAngle, endAngle);
+                ctx.strokeStyle = colors[i]; // Use the pre-calculated color
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                ctx.closePath();
+            }
+        }
+
+        // --- Animation Loop ---
+        let animationFrameId; // Store the animation frame ID for cleanup
+        let rotationAngle = 0;
+        let phaseOffset1 = 0; //unique phase offset for each circle.
+        let phaseOffset2 = 50;
+        let phaseOffset3 = 100;
+
+        function animate() {
+            if (!canvas) return; // Check if canvas is still defined
+            if (!ctx) return;    // Check if context is still defined
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas before drawing
+
+            // --- Define circle positions and sizes relative to canvas ---
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const circleRadius = Math.min(canvas.width, canvas.height) * 0.2; // Radius relative to smallest dimension
+
+            // --- Draw the three circles with different phase offsets ---
+            drawSpinningCircle(centerX - circleRadius * 1.2, centerY, circleRadius, rotationAngle, phaseOffset1); // Left circle
+            drawSpinningCircle(centerX, centerY, circleRadius, rotationAngle, phaseOffset2);             // Center circle
+            drawSpinningCircle(centerX + circleRadius * 1.2, centerY, circleRadius, rotationAngle, phaseOffset3); // Right circle
+
+            // --- Update rotation angle and phase offsets for animation ---
+            rotationAngle += 0.02; // Slow down rotation
+            phaseOffset1 += 0.5;    // Vary color phases
+            phaseOffset2 += 0.7;
+            phaseOffset3 += 0.9;
+
+            // --- Request the next animation frame ---
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        // --- Start the animation when the window loads ---
+        window.onload = () => {
+          animate();
+        }
+
+        // --- Optional: Stop animation on unload (good practice) ---
+        window.addEventListener('beforeunload', () => {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+        });
+    </script>
+</body>
+</html>
