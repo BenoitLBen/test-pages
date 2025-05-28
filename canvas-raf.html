@@ -17,6 +17,33 @@
         #wheelCanvas {
             border: 2px solid #333;
         }
+        
+        /* Container for the boxes, using Flexbox for layout */
+        .container {
+            display: flex;
+            flex-wrap: wrap; /* Allow boxes to wrap to the next line */
+            justify-content: center; /* Center boxes in the container */
+            gap: 20px; /* Space between boxes */
+            max-width: 1800px; /* Adjust max-width as needed to control wrapping, (500px + 20px margin + 2px border) * 3 = ~1566px for 3 boxes per row */
+            border-radius: 8px; /* Rounded corners for the container */
+        }
+
+        /* Styling for each white box */
+        .white-box {
+            width: 500px;
+            height: 500px;
+            background-color: white;
+            border: 1px solid #cccccc; /* Light gray border to distinguish boxes */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+            border-radius: 8px; /* Rounded corners for the boxes */
+            box-sizing: border-box; /* Include padding and border in the element's total width and height */
+            display: flex; /* To center content inside the box, if any */
+            justify-content: center; /* Center content horizontally */
+            align-items: center; /* Center content vertically */
+            font-size: 1.2em; /* Example text size */
+            color: #333; /* Example text color */
+        }
+    </style>
     </style>
 </head>
 <body>
@@ -56,5 +83,18 @@
 
         drawWheel();
     </script>
+
+    <div class="container">
+        <div class="white-box">Box 1</div>
+        <div class="white-box">Box 2</div>
+        <div class="white-box">Box 3</div>
+        <div class="white-box">Box 4</div>
+        <div class="white-box">Box 5</div>
+        <div class="white-box">Box 6</div>
+        <div class="white-box">Box 7</div>
+        <div class="white-box">Box 8</div>
+        <div class="white-box">Box 9</div>
+        <div class="white-box">Box 10</div>
+    </div>
 </body>
 </html>
