@@ -82,12 +82,6 @@
       ctx.rotate(rotation); // Rotate
       ctx.fillRect(-size / 2, -size / 2, size, size); // Draw rectangle centered
       ctx.restore(); // Restore the previous state (undo translation and rotation)
-
-      // Add a small, immediate CPU-bound task to further simulate work
-      // This is less about rasterization and more about general CPU load per frame
-      for (let j = 0; j < 500; j++) {
-        Math.sqrt(j * Math.random());
-      }
     }
     // --- End Heavy Raster Work ---
 
