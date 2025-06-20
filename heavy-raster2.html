@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>GPU-Heavy Raster Work (DOM/CSS)</title>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden; /* Prevent scrollbars from appearing */
+    background-color: #1a1a1a; /* Dark background for contrast */
+    font-family: sans-serif;
+  }
+  #container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+  }
+  .particle {
+    position: absolute;
+    width: 35px; /* Size of each particle */
+    height: 35px;
+    border-radius: 50%; /* Makes them circles, requiring more complex rasterization */
+    /* Add complex shadows for more GPU work */
+    box-shadow: 0px 0px 18px 5px rgba(0, 255, 255, 0.7);
+    /* Filter properties are also GPU-intensive */
+    filter: brightness(1.2) contrast(1.1);
+    /* Crucial for GPU acceleration and hints to the browser */
+    will-change: transform, opacity;
+  }
+  #framerate {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: white;
+    background-color: rgba(0, 0, 0, 0.6);
+    padding: 8px 15px;
+    border-radius: 8px;
+    font-size: 1.2em;
+    z-index: 1000; /* Ensure it's on top of particles */
+    user-select: none; /* Prevent text selection */
+  }
+</style>
+</head>
+<body>
+<div id="container"></div>
+<div id="framerate">FPS: --</div>
+
+<script>
+  const container = document.getElementById('container');
+  const framerateDisplay = document.getElementById('framerate');
+
+  // Adjust this number to control the load.
+  // 4000-8000 particles is usually enough to stress a mobile GPU.
+  const numParticles = 6000; 
+  const particles = [];
+
+  // Data storage for each particle's state to avoid DOM reads in animation loop
+  const particleStates = [];
+
+  // Helper to generate a random vibrant color
+  function generateRandomColor() {
+    const hue = Math.floor(Math.random() * 360);
+    const saturation = Math.floor(Math.random() * 50) + 50; // 50-100%
+    const lightness = Math.floor(Math.random() * 20) + 60; // 60-80%
+    return `hsla(${hue}, ${saturation}%, ${lightness}%, 0.8)`; // HSL with alpha
+  }
+
+  // Initialize and create all particles
+  for (let i = 0; i < numParticles; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'particle';
+    particle.style.backgroundColor = generateRandomColor();
+    container.appendChild(particle);
+    particles.push(particle);
+
+    // Store initial random properties for movement and rotation
+    particleStates.push({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      speedX: (Math.random() - 0.5) * 3, // Random speed for X
+      speedY: (Math.random() - 0.5) * 3, // Random speed for Y
+      rotation: Math.random() * 360,
+      rotationSpeed: (Math.random() - 0.5) * 2, // Small random rotation speed
+      opacityCycle: Math.random() * Math.PI * 2 // For sine wave opacity
+    });
+  }
+
+  let lastFrameTime = 0;
+  let frameCount = 0;
+  let fps = 0;
+
+  // The main animation loop
+  function animate(timestamp) {
+    // Calculate and display FPS
+    if (lastFrameTime === 0) {
+      lastFrameTime = timestamp;
+    }
+    const deltaTime = timestamp - lastFrameTime;
+    lastFrameTime = timestamp;
+
+    frameCount++;
+    if (deltaTime > 0) {
+      // Smoothed FPS calculation for a more stable reading
+      fps = 0.9 * fps + 0.1 * (1000 / deltaTime);
+      framerateDisplay.textContent = `FPS: ${fps.toFixed(1)}`;
+    }
+
+    // Update and render each particle
+    for (let i = 0; i < numParticles; i++) {
+      const particle = particles[i];
+      const state = particleStates[i];
+
+      // Update position
+      state.x += state.speedX;
+      state.y += state.speedY;
+
+      // Bounce particles off the screen edges
+      // Add a small offset to particle size to ensure they fully bounce within bounds
+      const particleSize = 35; // Matches .particle width/height
+      if (state.x < 0 || state.x > window.innerWidth - particleSize) {
+        state.speedX *= -1;
+        state.x = Math.max(0, Math.min(state.x, window.innerWidth - particleSize));
+      }
+      if (state.y < 0 || state.y > window.innerHeight - particleSize) {
+        state.speedY *= -1;
+        state.y = Math.max(0, Math.min(state.y, window.innerHeight - particleSize));
+      }
+
+      // Update rotation
+      state.rotation += state.rotationSpeed;
+      if (state.rotation >= 360) state.rotation -= 360;
+      if (state.rotation < 0) state.rotation += 360;
+
+      // Update opacity with a sine wave for subtle pulsing effect
+      state.opacityCycle += 0.05; // Speed of opacity change
+      const dynamicOpacity = 0.6 + Math.sin(state.opacityCycle) * 0.2; // Opacity between 0.4 and 0.8
+
+      // Apply CSS transforms. translate3d is critical for prompting GPU layer promotion.
+      particle.style.transform = `translate3d(${state.x}px, ${state.y}px, 0) rotateZ(${state.rotation}deg)`;
+      particle.style.opacity = dynamicOpacity;
+    }
+
+    // Request the next animation frame
+    requestAnimationFrame(animate);
+  }
+
+  // Adjust particle positions on window resize, or simply let them continue bouncing
+  window.addEventListener('resize', () => {
+    // Re-calculating positions might cause a momentary jump but ensures they stay visible.
+    // For this example, we just let them bounce within new bounds as simple.
+    // If you want more robust resizing, you'd iterate particleStates and adjust positions.
+  });
+
+  // Start the animation loop
+  requestAnimationFrame(animate);
+</script>
+</body>
+</html>
