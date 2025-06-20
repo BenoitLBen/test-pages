@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Heavy Raster Work with requestAnimationFrame</title>
+<style>
+  body { margin: 0; overflow: hidden; font-family: sans-serif; }
+  canvas { display: block; }
+  #framerate {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: white;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 5px 10px;
+    border-radius: 5px;
+  }
+</style>
+</head>
+<body>
+<canvas id="myCanvas"></canvas>
+<div id="framerate">FPS: --</div>
+
+<script>
+  const canvas = document.getElementById('myCanvas');
+  const ctx = canvas.getContext('2d');
+  const framerateDisplay = document.getElementById('framerate');
+
+  let lastFrameTime = 0;
+  let frameCount = 0;
+  let fps = 0;
+
+  // Set canvas size to fill the window
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas(); // Initial resize
+
+  function drawHeavyWork(timestamp) {
+    // Calculate FPS
+    if (lastFrameTime === 0) {
+      lastFrameTime = timestamp;
+    } else {
+      const deltaTime = timestamp - lastFrameTime;
+      lastFrameTime = timestamp;
+      frameCount++;
+
+      // Update FPS every second
+      if (deltaTime > 0) { // Avoid division by zero
+        // Simple moving average for smoother FPS display
+        fps = 0.9 * fps + 0.1 * (1000 / deltaTime);
+        framerateDisplay.textContent = `FPS: ${fps.toFixed(1)}`;
+      }
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+
+    // --- Heavy Raster Work ---
+    // This loop is designed to be computationally intensive.
+    // It draws many small, semi-transparent rectangles with varying colors.
+    // The number of iterations and the complexity of drawing each element
+    // will determine how long it takes.
+    const numRects = 20000; // Increased number of rectangles
+    for (let i = 0; i < numRects; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      const size = Math.random() * 50 + 10; // Random size between 10 and 60
+      const rotation = Math.random() * Math.PI * 2; // Random rotation
+
+      // Generate a random color with some transparency
+      const r = Math.floor(Math.random() * 255);
+      const g = Math.floor(Math.random() * 255);
+      const b = Math.floor(Math.random() * 255);
+      const a = Math.random() * 0.5 + 0.2; // Opacity between 0.2 and 0.7
+
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
+
+      // Apply rotation and translation
+      ctx.save(); // Save the current state
+      ctx.translate(x + size / 2, y + size / 2); // Translate to center of rectangle
+      ctx.rotate(rotation); // Rotate
+      ctx.fillRect(-size / 2, -size / 2, size, size); // Draw rectangle centered
+      ctx.restore(); // Restore the previous state (undo translation and rotation)
+
+      // Add a small, immediate CPU-bound task to further simulate work
+      // This is less about rasterization and more about general CPU load per frame
+      for (let j = 0; j < 500; j++) {
+        Math.sqrt(j * Math.random());
+      }
+    }
+    // --- End Heavy Raster Work ---
+
+    requestAnimationFrame(drawHeavyWork);
+  }
+
+  // Start the animation loop
+  requestAnimationFrame(drawHeavyWork);
+</script>
+</body>
+</html>
