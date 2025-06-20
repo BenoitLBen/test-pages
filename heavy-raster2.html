@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>GPU-Heavy Raster Work (DOM/CSS)</title>
+<title>GPU-Heavy Raster Work (DOM/CSS) - Configurable</title>
 <style>
   body {
     margin: 0;
@@ -38,22 +38,51 @@
     z-index: 1000; /* Ensure it's on top of particles */
     user-select: none; /* Prevent text selection */
   }
+  #particle-count-info {
+    position: absolute;
+    top: 60px; /* Below FPS counter */
+    left: 10px;
+    color: #ccc;
+    background-color: rgba(0, 0, 0, 0.6);
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.9em;
+    z-index: 1000;
+  }
 </style>
 </head>
 <body>
 <div id="container"></div>
 <div id="framerate">FPS: --</div>
+<div id="particle-count-info">Particles: --</div>
 
 <script>
   const container = document.getElementById('container');
   const framerateDisplay = document.getElementById('framerate');
+  const particleCountInfo = document.getElementById('particle-count-info');
 
-  // Adjust this number to control the load.
-  // 4000-8000 particles is usually enough to stress a mobile GPU.
-  const numParticles = 1000; 
+  // --- Particle Count Configuration from URL Parameter ---
+  const urlParams = new URLSearchParams(window.location.search);
+  const requestedParticles = parseInt(urlParams.get('particles')); // Get 'particles' parameter
+
+  // Set a default if the parameter is not a valid number
+  const defaultParticles = 6000; 
+  const minParticles = 10;
+  const maxParticles = 20000; // Cap to prevent crashing on extremely high numbers
+
+  let numParticles = defaultParticles;
+  if (!isNaN(requestedParticles) && requestedParticles >= minParticles && requestedParticles <= maxParticles) {
+    numParticles = requestedParticles;
+  } else if (!isNaN(requestedParticles) && requestedParticles < minParticles) {
+    numParticles = minParticles; // Enforce minimum
+  } else if (!isNaN(requestedParticles) && requestedParticles > maxParticles) {
+    numParticles = maxParticles; // Enforce maximum
+  }
+  // --- End Particle Count Configuration ---
+
+  particleCountInfo.textContent = `Particles: ${numParticles}`;
+
   const particles = [];
-
-  // Data storage for each particle's state to avoid DOM reads in animation loop
   const particleStates = [];
 
   // Helper to generate a random vibrant color
@@ -99,12 +128,12 @@
 
     frameCount++;
     if (deltaTime > 0) {
-      // Smoothed FPS calculation for a more stable reading
       fps = 0.9 * fps + 0.1 * (1000 / deltaTime);
       framerateDisplay.textContent = `FPS: ${fps.toFixed(1)}`;
     }
 
     // Update and render each particle
+    const particleSize = 35; // Matches .particle width/height
     for (let i = 0; i < numParticles; i++) {
       const particle = particles[i];
       const state = particleStates[i];
@@ -114,8 +143,6 @@
       state.y += state.speedY;
 
       // Bounce particles off the screen edges
-      // Add a small offset to particle size to ensure they fully bounce within bounds
-      const particleSize = 35; // Matches .particle width/height
       if (state.x < 0 || state.x > window.innerWidth - particleSize) {
         state.speedX *= -1;
         state.x = Math.max(0, Math.min(state.x, window.innerWidth - particleSize));
@@ -143,11 +170,11 @@
     requestAnimationFrame(animate);
   }
 
-  // Adjust particle positions on window resize, or simply let them continue bouncing
+  // Handle window resizing: Currently, particles just bounce within new bounds.
+  // No explicit recalculation of initial positions for simplicity.
   window.addEventListener('resize', () => {
-    // Re-calculating positions might cause a momentary jump but ensures they stay visible.
-    // For this example, we just let them bounce within new bounds as simple.
-    // If you want more robust resizing, you'd iterate particleStates and adjust positions.
+    // If you need more complex behavior (e.g., particles re-spreading),
+    // you would iterate `particleStates` and adjust `x`, `y` based on new window.innerWidth/Height.
   });
 
   // Start the animation loop
