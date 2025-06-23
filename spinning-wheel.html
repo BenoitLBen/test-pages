@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spinning Beach Ball</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light gray background */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden; /* Prevent scrollbars */
+        }
+        canvas {
+            display: block;
+            background-color: #ffffff; /* White canvas background */
+            border-radius: 1.5rem; /* Rounded corners for the canvas */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+            max-width: 90vw; /* Ensure responsiveness */
+            max-height: 80vh; /* Ensure responsiveness */
+        }
+        #fps-display {
+            margin-top: 1.5rem;
+            padding: 0.75rem 1.5rem;
+            background-color: #4a5568; /* Dark gray for FPS background */
+            color: #ffffff;
+            border-radius: 0.75rem; /* Rounded corners for FPS display */
+            font-size: 1.25rem;
+            font-weight: bold;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="beachBallCanvas"></canvas>
+    <div id="fps-display" class="text-center">FPS: 0</div>
+
+    <script>
+        const canvas = document.getElementById('beachBallCanvas');
+        const ctx = canvas.getContext('2d');
+        const fpsDisplay = document.getElementById('fps-display');
+
+        let animationFrameId = null;
+        let lastFrameTime = performance.now();
+        let rotationAngle = 0;
+        const rotationSpeed = 0.05; // Adjust for faster/slower spin
+
+        // Function to convert HSL to RGB hex string
+        // H: 0-360, S: 0-100, L: 0-100
+        function hslToRgb(h, s, l) {
+            s /= 100;
+            l /= 100;
+            let c = (1 - Math.abs(2 * l - 1)) * s,
+                x = c * (1 - Math.abs((h / 60) % 2 - 1)),
+                m = l - c / 2,
+                r = 0,
+                g = 0,
+                b = 0;
+
+            if (0 <= h && h < 60) {
+                r = c; g = x; b = 0;
+            } else if (60 <= h && h < 120) {
+                r = x; g = c; b = 0;
+            } else if (120 <= h && h < 180) {
+                r = 0; g = c; b = x;
+            } else if (180 <= h && h < 240) {
+                r = 0; g = x; b = c;
+            } else if (240 <= h && h < 300) {
+                r = x; g = 0; b = c;
+            } else if (300 <= h && h < 360) {
+                r = c; g = 0; b = x;
+            }
+            r = Math.round((r + m) * 255).toString(16);
+            g = Math.round((g + m) * 255).toString(16);
+            b = Math.round((b + m) * 255).toString(16);
+
+            // Pad single-digit hex values with a leading zero
+            if (r.length === 1) r = '0' + r;
+            if (g.length === 1) g = '0' + g;
+            if (b.length === 1) b = '0' + b;
+
+            return '#' + r + g + b;
+        }
+
+        // Generate colors for the segments using a gradient
+        const initialBaseColorsLength = 16; // Number of colors in the previous "baseColors" array
+        const desiredNumSegments = initialBaseColorsLength * 5; // Still 80 segments in total
+        const colors = [];
+        const startHue = 0;    // Start from Red hue
+        const endHue = 360;    // Go through the full spectrum back to Red
+        const saturation = 90; // Keep high saturation for vibrant look
+        const lightness = 60;  // Keep medium lightness
+
+        for (let i = 0; i < desiredNumSegments; i++) {
+            // Calculate hue for this segment to create a smooth gradient
+            const hue = startHue + (i / desiredNumSegments) * (endHue - startHue);
+            colors.push(hslToRgb(hue, saturation, lightness));
+        }
+        
+        const numSegments = colors.length;
+        const anglePerSegment = (2 * Math.PI) / numSegments;
+
+        // Function to set canvas size based on window
+        function setCanvasSize() {
+            const size = Math.min(window.innerWidth * 0.8, window.innerHeight * 0.7, 400); // Max size 400x400
+            canvas.width = size;
+            canvas.height = size;
+            drawBeachBall(ctx, rotationAngle); // Redraw after resize
+        }
+
+        // Draw the spinning beach ball
+        function drawBeachBall(context, angle) {
+            context.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(centerX, centerY) * 0.9; // Ball radius
+
+            context.save(); // Save current transformation state
+            context.translate(centerX, centerY); // Move origin to center
+            context.rotate(angle); // Rotate around the center
+
+            for (let i = 0; i < numSegments; i++) {
+                context.beginPath();
+                context.moveTo(0, 0); // Start from the center
+                const startAngle = i * anglePerSegment;
+                const endAngle = (i + 1) * anglePerSegment;
+                context.arc(0, 0, radius, startAngle, endAngle);
+                context.closePath();
+                context.fillStyle = colors[i];
+                context.fill();
+                context.strokeStyle = '#ffffff'; // White border for segments
+                context.lineWidth = 2;
+                context.stroke();
+
+                // Add radial lines within each segment for "heavier raster" look
+                context.save();
+                context.rotate(startAngle); // Rotate to the start of the current segment
+                for (let j = 1; j <= 1; j++) { // Draw 1 radial line per segment
+                    context.beginPath();
+                    context.moveTo(0, 0);
+                    context.lineTo(radius, 0); // Draw line from center to edge
+                    context.strokeStyle = 'rgba(255, 255, 255, 0.2)'; // Semi-transparent white
+                    context.lineWidth = 0.5; // Thinner lines
+                    context.stroke();
+                    context.rotate(anglePerSegment / 2); // Adjust rotation for fewer lines
+                }
+                context.restore();
+            }
+
+            // Draw a small central circle to mimic the macOS spinner's center
+            context.beginPath();
+            context.arc(0, 0, radius * 0.1, 0, 2 * Math.PI);
+            context.fillStyle = '#f0f0f0'; // Light gray center
+            context.fill();
+            context.strokeStyle = '#cccccc'; // Darker gray border
+            context.lineWidth = 1;
+            context.stroke();
+
+            context.restore(); // Restore previous transformation state
+        }
+
+        // Animation loop
+        function animate(currentTime) {
+            const deltaTime = currentTime - lastFrameTime;
+            lastFrameTime = currentTime;
+            const fps = Math.round(1000 / deltaTime);
+            fpsDisplay.textContent = `FPS: ${fps}`;
+
+            rotationAngle += rotationSpeed * (deltaTime / 16.66); // Adjust speed based on delta time (16.66ms is ~60 FPS frame time)
+            // Ensure angle stays within 0 to 2*PI to prevent large numbers
+            if (rotationAngle > 2 * Math.PI) {
+                rotationAngle -= 2 * Math.PI;
+            }
+
+            drawBeachBall(ctx, rotationAngle);
+
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        // Start the animation and set up event listeners
+        window.onload = function() {
+            setCanvasSize(); // Set initial size
+            animationFrameId = requestAnimationFrame(animate); // Start animation
+        };
+
+        window.addEventListener('resize', setCanvasSize); // Adjust canvas on window resize
+
+        // Cleanup on component unmount (not strictly necessary for a single page, but good practice)
+        // window.addEventListener('beforeunload', () => {
+        //     if (animationFrameId) {
+        //         cancelAnimationFrame(animationFrameId);
+        //     }
+        // });
+
+    </script>
+</body>
+</html>
