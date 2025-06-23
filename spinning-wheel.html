@@ -17,6 +17,8 @@
             min-height: 100vh;
             margin: 0;
             overflow: hidden; /* Prevent scrollbars */
+            padding: 1.5rem; /* Add some padding around content */
+            box-sizing: border-box; /* Include padding in element's total width and height */
         }
         canvas {
             display: block;
@@ -25,9 +27,10 @@
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Subtle shadow */
             max-width: 90vw; /* Ensure responsiveness */
             max-height: 80vh; /* Ensure responsiveness */
+            margin-bottom: 1.5rem; /* Space between ball and graph */
         }
         #fps-display {
-            margin-top: 1.5rem;
+            margin-top: 0.5rem; /* Reduced margin to keep it closer to the ball */
             padding: 0.75rem 1.5rem;
             background-color: #4a5568; /* Dark gray for FPS background */
             color: #ffffff;
@@ -35,6 +38,15 @@
             font-size: 1.25rem;
             font-weight: bold;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            margin-bottom: 1.5rem; /* Space between FPS and graph */
+        }
+
+        #graphCanvas {
+            background-color: #ffffff;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            max-width: 90vw;
+            height: 150px; /* Fixed height for the graph, width will be responsive */
         }
     </style>
 </head>
@@ -42,16 +54,23 @@
 
     <canvas id="beachBallCanvas"></canvas>
     <div id="fps-display" class="text-center">FPS: 0</div>
+    <canvas id="graphCanvas"></canvas>
 
     <script>
-        const canvas = document.getElementById('beachBallCanvas');
-        const ctx = canvas.getContext('2d');
+        const beachBallCanvas = document.getElementById('beachBallCanvas');
+        const beachBallCtx = beachBallCanvas.getContext('2d');
         const fpsDisplay = document.getElementById('fps-display');
+        const graphCanvas = document.getElementById('graphCanvas');
+        const graphCtx = graphCanvas.getContext('2d');
 
         let animationFrameId = null;
         let lastFrameTime = performance.now();
         let rotationAngle = 0;
         const rotationSpeed = 0.05; // Adjust for faster/slower spin
+
+        // Array to store recent frame update times (deltaTime) for the graph
+        const frameTimes = [];
+        const maxFrameTimeHistory = 100; // Number of data points to keep for the graph
 
         // Function to convert HSL to RGB hex string
         // H: 0-360, S: 0-100, L: 0-100
@@ -91,16 +110,15 @@
         }
 
         // Generate colors for the segments using a gradient
-        const initialBaseColorsLength = 16; // Number of colors in the previous "baseColors" array
-        const desiredNumSegments = initialBaseColorsLength * 5; // Still 80 segments in total
+        const initialBaseColorsLength = 16;
+        const desiredNumSegments = initialBaseColorsLength * 5;
         const colors = [];
-        const startHue = 0;    // Start from Red hue
-        const endHue = 360;    // Go through the full spectrum back to Red
-        const saturation = 90; // Keep high saturation for vibrant look
-        const lightness = 60;  // Keep medium lightness
+        const startHue = 0;
+        const endHue = 360;
+        const saturation = 90;
+        const lightness = 60;
 
         for (let i = 0; i < desiredNumSegments; i++) {
-            // Calculate hue for this segment to create a smooth gradient
             const hue = startHue + (i / desiredNumSegments) * (endHue - startHue);
             colors.push(hslToRgb(hue, saturation, lightness));
         }
@@ -108,20 +126,28 @@
         const numSegments = colors.length;
         const anglePerSegment = (2 * Math.PI) / numSegments;
 
-        // Function to set canvas size based on window
-        function setCanvasSize() {
-            const size = Math.min(window.innerWidth * 0.8, window.innerHeight * 0.7, 400); // Max size 400x400
-            canvas.width = size;
-            canvas.height = size;
-            drawBeachBall(ctx, rotationAngle); // Redraw after resize
+        // Function to set canvas sizes based on window
+        function setCanvasSizes() {
+            // Beach Ball Canvas
+            const ballSize = Math.min(window.innerWidth * 0.8, window.innerHeight * 0.5, 400); // Smaller max height to make space for graph
+            beachBallCanvas.width = ballSize;
+            beachBallCanvas.height = ballSize;
+
+            // Graph Canvas - width matches beach ball, height is fixed
+            graphCanvas.width = ballSize; // Make graph width consistent with the ball
+            // graphCanvas.height is set via CSS, but we can set it here too if needed
+            // graphCanvas.height = 150; // Already set in CSS but good for clarity
+
+            drawBeachBall(beachBallCtx, rotationAngle); // Redraw beach ball
+            drawFrameTimeGraph(); // Redraw graph
         }
 
         // Draw the spinning beach ball
         function drawBeachBall(context, angle) {
-            context.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+            context.clearRect(0, 0, beachBallCanvas.width, beachBallCanvas.height); // Clear the canvas
 
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
+            const centerX = beachBallCanvas.width / 2;
+            const centerY = beachBallCanvas.height / 2;
             const radius = Math.min(centerX, centerY) * 0.9; // Ball radius
 
             context.save(); // Save current transformation state
@@ -168,31 +194,91 @@
             context.restore(); // Restore previous transformation state
         }
 
+        // Draw the frame update time graph
+        function drawFrameTimeGraph() {
+            graphCtx.clearRect(0, 0, graphCanvas.width, graphCanvas.height); // Clear the graph canvas
+
+            const padding = 10;
+            const graphWidth = graphCanvas.width - 2 * padding;
+            const graphHeight = graphCanvas.height - 2 * padding;
+
+            if (frameTimes.length === 0) return;
+
+            // Find max frame time for scaling the Y-axis
+            const maxVal = Math.max(...frameTimes, 16.66); // Include 16.66ms (for 60 FPS) as a minimum
+            const yScale = graphHeight / maxVal;
+
+            // Draw a target 60 FPS line (16.66ms)
+            graphCtx.beginPath();
+            graphCtx.strokeStyle = 'rgba(0, 128, 0, 0.5)'; // Green
+            graphCtx.lineWidth = 1;
+            const targetY = padding + graphHeight - (16.66 * yScale);
+            graphCtx.moveTo(padding, targetY);
+            graphCtx.lineTo(graphWidth + padding, targetY);
+            graphCtx.stroke();
+            graphCtx.fillStyle = 'rgba(0, 128, 0, 0.8)';
+            graphCtx.font = '10px Inter, sans-serif';
+            graphCtx.fillText('60 FPS (16.7ms)', padding + 5, targetY - 5);
+
+
+            // Draw the graph line
+            graphCtx.beginPath();
+            graphCtx.strokeStyle = '#3b82f6'; // Blue
+            graphCtx.lineWidth = 2;
+
+            for (let i = 0; i < frameTimes.length; i++) {
+                const x = padding + (i / maxFrameTimeHistory) * graphWidth;
+                const y = padding + graphHeight - (frameTimes[i] * yScale); // Invert Y-axis for graph
+
+                if (i === 0) {
+                    graphCtx.moveTo(x, y);
+                } else {
+                    graphCtx.lineTo(x, y);
+                }
+            }
+            graphCtx.stroke();
+
+            // Add some context for the axes
+            graphCtx.fillStyle = '#4a5568';
+            graphCtx.font = '10px Inter, sans-serif';
+            graphCtx.fillText('Time (ms)', padding, graphCanvas.height - 2);
+            graphCtx.fillText('0', padding - 8, graphCanvas.height - padding + 5);
+            graphCtx.fillText(`${Math.round(maxVal)}ms`, padding - 30, padding + 10);
+        }
+
         // Animation loop
         function animate(currentTime) {
             const deltaTime = currentTime - lastFrameTime;
             lastFrameTime = currentTime;
+
+            // Update FPS display
             const fps = Math.round(1000 / deltaTime);
             fpsDisplay.textContent = `FPS: ${fps}`;
 
-            rotationAngle += rotationSpeed * (deltaTime / 16.66); // Adjust speed based on delta time (16.66ms is ~60 FPS frame time)
-            // Ensure angle stays within 0 to 2*PI to prevent large numbers
+            // Store deltaTime for the graph
+            frameTimes.push(deltaTime);
+            if (frameTimes.length > maxFrameTimeHistory) {
+                frameTimes.shift(); // Remove oldest data point
+            }
+
+            rotationAngle += rotationSpeed * (deltaTime / 16.66); // Adjust speed based on delta time (~60 FPS frame time)
             if (rotationAngle > 2 * Math.PI) {
                 rotationAngle -= 2 * Math.PI;
             }
 
-            drawBeachBall(ctx, rotationAngle);
+            drawBeachBall(beachBallCtx, rotationAngle);
+            drawFrameTimeGraph(); // Draw the graph on each frame
 
             animationFrameId = requestAnimationFrame(animate);
         }
 
         // Start the animation and set up event listeners
         window.onload = function() {
-            setCanvasSize(); // Set initial size
+            setCanvasSizes(); // Set initial sizes for both canvases
             animationFrameId = requestAnimationFrame(animate); // Start animation
         };
 
-        window.addEventListener('resize', setCanvasSize); // Adjust canvas on window resize
+        window.addEventListener('resize', setCanvasSizes); // Adjust canvases on window resize
 
         // Cleanup on component unmount (not strictly necessary for a single page, but good practice)
         // window.addEventListener('beforeunload', () => {
