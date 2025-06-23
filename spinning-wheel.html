@@ -251,15 +251,17 @@
             const deltaTime = currentTime - lastFrameTime;
             lastFrameTime = currentTime;
 
-            // Update FPS display
-            const fps = Math.round(1000 / deltaTime);
-            fpsDisplay.textContent = `FPS: ${fps}`;
-
             // Store deltaTime for the graph
             frameTimes.push(deltaTime);
             if (frameTimes.length > maxFrameTimeHistory) {
                 frameTimes.shift(); // Remove oldest data point
             }
+
+            // Calculate average deltaTime for running average FPS
+            const averageDeltaTime = frameTimes.reduce((sum, val) => sum + val, 0) / frameTimes.length;
+            const averageFps = Math.round(1000 / averageDeltaTime);
+            fpsDisplay.textContent = `FPS: ${averageFps}`;
+
 
             rotationAngle += rotationSpeed * (deltaTime / 16.66); // Adjust speed based on delta time (~60 FPS frame time)
             if (rotationAngle > 2 * Math.PI) {
