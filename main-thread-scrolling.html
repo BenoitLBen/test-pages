@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scrollable Sample Text Page with Custom Scrollbar (No Inertia)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Apply Inter font and basic styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f8f8;
+            margin: 0;
+            padding: 0;
+            /* Hide native scrollbar for all major browsers */
+            overflow: hidden; /* Hide the native scrollbar and prevent native scrolling */
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE and Edge */
+        }
+        /* Hide native scrollbar for Webkit browsers (Chrome, Safari) */
+        body::-webkit-scrollbar {
+            display: none;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: #ffffff;
+            border-radius: 0.75rem; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+        }
+
+        h1 {
+            color: #1a202c; /* text-gray-900 */
+            font-size: 2.25rem; /* text-4xl */
+            font-weight: 700; /* font-bold */
+            margin-bottom: 1.5rem; /* mb-6 */
+            text-align: center;
+        }
+
+        p {
+            margin-bottom: 1.25rem; /* mb-5 */
+            text-align: justify;
+        }
+
+        /* Custom scrollbar styling */
+        #custom-scrollbar-track {
+            position: fixed; /* Keep it in view while scrolling */
+            right: 0.5rem; /* Equivalent to right-2 in Tailwind */
+            top: 0;
+            height: 100vh; /* Full viewport height */
+            width: 0.5rem; /* Equivalent to w-2 in Tailwind */
+            background-color: #e2e8f0; /* bg-gray-200 */
+            border-radius: 0.25rem; /* rounded-full */
+            z-index: 999; /* Ensure it's above other content */
+        }
+
+        #custom-scrollbar-thumb {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            background-color: #3b82f6; /* bg-blue-500 */
+            border-radius: 0.25rem; /* rounded-full */
+            cursor: grab; /* Indicate it's draggable */
+            transition: background-color 0.1s ease-in-out; /* Smooth hover/drag effect */
+        }
+
+        #custom-scrollbar-thumb.bg-blue-600 {
+            background-color: #2563eb; /* Darker blue on drag */
+            cursor: grabbing;
+        }
+    </style>
+</head>
+<body class="p-4">
+    <div class="container">
+        <h1>Long Sample Text for Scrolling</h1>
+
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+
+        <p>Curabitur pretium tincidunt lacus, eget facilisis dolor cursus vel. Nunc euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl. Sed euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl. Sed euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl. Sed euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl.</p>
+
+        <p>Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante. Donec eu libero sit amet quam egestas semper. Aenean ultricies mi vitae est. Mauris placerat eleifend leo.</p>
+
+        <p>Phasellus nec sem in lectus fermentum aliquet. Sed vel justo eget quam viverra egestas. Nulla facilisi. Proin vel diam id dolor scelerisque commodo. Fusce ut orci id libero congue auctor. Donec vel elit eget erat aliquet efficitur. Cras vitae eros vel nunc consectetur ultrices. Aliquam erat volutpat.</p>
+
+        <p>In hac habitasse platea dictumst. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Donec eu est a elit facilisis bibendum. Integer non mauris sed enim fringilla scelerisque. Nulla facilisi. Sed non justo vel enim facilisis aliquet. Praesent mollis, arcu ac cursus placerat, orci tortor ultricies nisl, nec ultricies nisl nunc nec nisl.</p>
+
+        <p>Vivamus eget elit eget erat aliquet efficitur. Cras vitae eros vel nunc consectetur ultrices. Aliquam erat volutpat. In hac habitasse platea dictumst. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Donec eu est a elit facilisis bibendum. Integer non mauris sed enim fringilla scelerisque. Nulla facilisi. Sed non justo vel enim facilisis aliquet. Praesent mollis, arcu ac cursus placerat, orci tortor ultricies nisl, nec ultricies nisl nunc nec nisl.</p>
+
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+
+        <p>Curabitur pretium tincidunt lacus, eget facilisis dolor cursus vel. Nunc euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl. Sed euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl. Sed euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl. Sed euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl.</p>
+
+        <p>Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante. Donec eu libero sit amet quam egestas semper. Aenean ultricies mi vitae est. Mauris placerat eleifend leo.</p>
+
+        <p>Phasellus nec sem in lectus fermentum aliquet. Sed vel justo eget quam viverra egestas. Nulla facilisi. Proin vel diam id dolor scelerisque commodo. Fusce ut orci id libero congue auctor. Donec vel elit eget erat aliquet efficitur. Cras vitae eros vel nunc consectetur ultrices. Aliquam erat volutpat.</p>
+
+        <p>In hac habitasse platea dictumst. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Donec eu est a elit facilisis bibendum. Integer non mauris sed enim fringilla scelerisque. Nulla facilisi. Sed non justo vel enim facilisis aliquet. Praesent mollis, arcu ac cursus placerat, orci tortor ultricies nisl, nec ultricies nisl nunc nec nisl.</p>
+
+        <p>Vivamus eget elit eget erat aliquet efficitur. Cras vitae eros vel nunc consectetur ultrices. Aliquam erat volutpat. In hac habitasse platea dictumst. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Donec eu est a elit facilisis bibendum. Integer non mauris sed enim fringilla scelerisque. Nulla facilisi. Sed non justo vel enim facilisis aliquet. Praesent mollis, arcu ac cursus placerat, orci tortor ultricies nisl, nec ultricies nisl nunc nec nisl.</p>
+
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+
+        <p>Curabitur pretium tincidunt lacus, eget facilisis dolor cursus vel. Nunc euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl. Sed euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl. Sed euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl. Sed euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl.</p>
+
+        <p>Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante. Donec eu libero sit amet quam egestas semper. Aenean ultricies mi vitae est. Mauris placerat eleifend leo.</p>
+
+        <p>Phasellus nec sem in lectus fermentum aliquet. Sed vel justo eget quam viverra egestas. Nulla facilisi. Proin vel diam id dolor scelerisque commodo. Fusce ut orci id libero congue auctor. Donec vel elit eget erat aliquet efficitur. Cras vitae eros vel nunc consectetur ultrices. Aliquam erat volutpat.</p>
+
+        <p>In hac habitasse platea dictumst. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Donec eu est a elit facilisis bibendum. Integer non mauris sed enim fringilla scelerisque. Nulla facilisi. Sed non justo vel enim facilisis aliquet. Praesent mollis, arcu ac cursus placerat, orci tortor ultricies nisl, nec ultricies nisl nunc nec nisl.</p>
+
+        <p>Vivamus eget elit eget erat aliquet efficitur. Cras vitae eros vel nunc consectetur ultrices. Aliquam erat volutpat. In hac habitasse platea dictumst. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Donec eu est a elit facilisis bibendum. Integer non mauris sed enim fringilla scelerisque. Nulla facilisi. Sed non justo vel enim facilisis aliquet. Praesent mollis, arcu ac cursus placerat, orci tortor ultricies nisl, nec ultricies nisl nunc nec nisl.</p>
+
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+
+        <p>Curabitur pretium tincidunt lacus, eget facilisis dolor cursus vel. Nunc euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl. Sed euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl. Sed euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl. Sed euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl.</p>
+
+        <p>Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante. Donec eu libero sit amet quam egestas semper. Aenean ultricies mi vitae est. Mauris placerat eleifend leo.</p>
+
+        <p>Phasellus nec sem in lectus fermentum aliquet. Sed vel justo eget quam viverra egestas. Nulla facilisi. Proin vel diam id dolor scelerisque commodo. Fusce ut orci id libero congue auctor. Donec vel elit eget erat aliquet efficitur. Cras vitae eros vel nunc consectetur ultrices. Aliquam erat volutpat.</p>
+
+        <p>In hac habitasse platea dictumst. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Donec eu est a elit facilisis bibendum. Integer non mauris sed enim fringilla scelerisque. Nulla facilisi. Sed non justo vel enim facilisis aliquet. Praesent mollis, arcu ac cursus placerat, orci tortor ultricies nisl, nec ultricies nisl nunc nec nisl.</p>
+
+        <p>Vivamus eget elit eget erat aliquet efficitur. Cras vitae eros vel nunc consectetur ultrices. Aliquam erat volutpat. In hac habitasse platea dictumst. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Donec eu est a elit facilisis bibendum. Integer non mauris sed enim fringilla scelerisque. Nulla facilisi. Sed non justo vel enim facilisis aliquet. Praesent mollis, arcu ac cursus placerat, orci tortor ultricies nisl, nec ultricies nisl nunc nec nisl.</p>
+
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+
+        <p>Curabitur pretium tincidunt lacus, eget facilisis dolor cursus vel. Nunc euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl. Sed euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl. Sed euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl. Sed euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl.</p>
+
+        <p>Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante. Donec eu libero sit amet quam egestas semper. Aenean ultricies mi vitae est. Mauris placerat eleifend leo.</p>
+
+        <p>Phasellus nec sem in lectus fermentum aliquet. Sed vel justo eget quam viverra egestas. Nulla facilisi. Proin vel diam id dolor scelerisque commodo. Fusce ut orci id libero congue auctor. Donec vel elit eget erat aliquet efficitur. Cras vitae eros vel nunc consectetur ultrices. Aliquam erat volutpat.</p>
+
+        <p>In hac habitasse platea dictumst. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Donec eu est a elit facilisis bibendum. Integer non mauris sed enim fringilla scelerisque. Nulla facilisi. Sed non justo vel enim facilisis aliquet. Praesent mollis, arcu ac cursus placerat, orci tortor ultricies nisl, nec ultricies nisl nunc nec nisl.</p>
+
+        <p>Vivamus eget elit eget erat aliquet efficitur. Cras vitae eros vel nunc consectetur ultrices. Aliquam erat volutpat. In hac habitasse platea dictumst. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Donec eu est a elit facilisis bibendum. Integer non mauris sed enim fringilla scelerisque. Nulla facilisi. Sed non justo vel enim facilisis aliquet. Praesent mollis, arcu ac cursus placerat, orci tortor ultricies nisl, nec ultricies nisl nunc nec nisl.</p>
+    </div>
+
+    <!-- Custom Scrollbar Elements -->
+    <div id="custom-scrollbar-track">
+        <div id="custom-scrollbar-thumb"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const customScrollbarTrack = document.getElementById('custom-scrollbar-track');
+            const customScrollbarThumb = document.getElementById('custom-scrollbar-thumb');
+
+            let isDragging = false;
+            let startY; // For mouse drag on scrollbar thumb
+            let startTouchY; // For touch events on the document itself
+            let startThumbTop;
+
+            /**
+             * Updates the position and size of the custom scrollbar thumb
+             * based on the current scroll position of the document.
+             */
+            function updateCustomScrollbar() {
+                // Get the total scrollable height of the document
+                const documentHeight = document.documentElement.scrollHeight;
+                // Get the current height of the viewport
+                const viewportHeight = document.documentElement.clientHeight;
+                // Get the current scroll position from the top of the document
+                const scrollTop = document.documentElement.scrollTop;
+                // Get the height of the custom scrollbar track
+                const trackHeight = customScrollbarTrack.clientHeight;
+
+                // Calculate the height of the thumb relative to the content and viewport
+                // Ensure a minimum height for usability (e.g., 20 pixels)
+                const minThumbHeight = 20;
+                let thumbHeight = Math.max((viewportHeight / documentHeight) * trackHeight, minThumbHeight);
+
+                // If the content is smaller than the viewport, the thumb should fill the track
+                if (thumbHeight > trackHeight) {
+                    thumbHeight = trackHeight;
+                }
+                customScrollbarThumb.style.height = `${thumbHeight}px`;
+
+                // Calculate the maximum distance the thumb can travel
+                const thumbMaxTravel = trackHeight - thumbHeight;
+                // Calculate the total scrollable distance of the document
+                const scrollableHeight = documentHeight - viewportHeight;
+
+                // Calculate the scroll percentage to position the thumb
+                const scrollPercentage = scrollableHeight > 0 ? scrollTop / scrollableHeight : 0;
+                // Calculate the thumb's top position
+                const thumbTop = scrollPercentage * thumbMaxTravel;
+
+                customScrollbarThumb.style.top = `${thumbTop}px`;
+
+                console.log('Custom scroll update. ScrollTop:', scrollTop);
+            }
+
+            // Initial update of the custom scrollbar when the page loads
+            updateCustomScrollbar();
+
+            // Update the custom scrollbar whenever the window is resized
+            window.addEventListener('resize', updateCustomScrollbar);
+
+            // --- Control Native Scrolling by preventing default on input events ---
+
+            // Handle mouse wheel scrolling
+            window.addEventListener('wheel', (e) => {
+                e.preventDefault(); // Prevent default browser scroll and inertia
+                const scrollAmount = e.deltaY; // Get scroll delta from mouse wheel
+                const documentHeight = document.documentElement.scrollHeight;
+                const viewportHeight = document.documentElement.clientHeight;
+                const maxScrollTop = documentHeight - viewportHeight;
+
+                // Calculate new scroll position and clamp it within bounds
+                let newScrollTop = document.documentElement.scrollTop + scrollAmount;
+                newScrollTop = Math.max(0, Math.min(newScrollTop, maxScrollTop));
+
+                document.documentElement.scrollTop = newScrollTop; // Manually set scroll position
+                updateCustomScrollbar(); // Update custom scrollbar thumb
+            }, { passive: false }); // Ensure this handler is non-passive
+
+            // Handle touch scrolling (for mobile devices)
+            window.addEventListener('touchstart', (e) => {
+                startTouchY = e.touches[0].clientY; // Record initial touch position
+            }, { passive: false });
+
+            window.addEventListener('touchmove', (e) => {
+                e.preventDefault(); // Prevent default touch scroll and inertia
+                const touchY = e.touches[0].clientY;
+                const deltaY = startTouchY - touchY; // Calculate vertical movement
+                startTouchY = touchY; // Update starting touch position for next move event
+
+                const documentHeight = document.documentElement.scrollHeight;
+                const viewportHeight = document.documentElement.clientHeight;
+                const maxScrollTop = documentHeight - viewportHeight;
+
+                // Calculate new scroll position and clamp it within bounds
+                let newScrollTop = document.documentElement.scrollTop + deltaY;
+                newScrollTop = Math.max(0, Math.min(newScrollTop, maxScrollTop));
+
+                document.documentElement.scrollTop = newScrollTop; // Manually set scroll position
+                updateCustomScrollbar(); // Update custom scrollbar thumb
+            }, { passive: false }); // Ensure this handler is non-passive
+
+            // --- Custom Scrollbar Dragging Functionality ---
+
+            // Handle mouse down on the custom scrollbar thumb
+            customScrollbarThumb.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startY = e.clientY; // Store the initial Y position of the mouse
+                startThumbTop = customScrollbarThumb.offsetTop; // Store the initial top position of the thumb
+                customScrollbarThumb.classList.add('bg-blue-600'); // Change color to indicate dragging
+                e.preventDefault(); // Prevent default browser actions like text selection
+            });
+
+            // Handle mouse move while dragging
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return; // Only execute if dragging is active
+
+                const deltaY = e.clientY - startY; // Calculate how much the mouse has moved vertically
+                const newThumbTop = startThumbTop + deltaY; // Calculate the potential new top position for the thumb
+
+                const trackHeight = customScrollbarTrack.clientHeight;
+                const thumbHeight = customScrollbarThumb.clientHeight;
+                const thumbMaxTravel = trackHeight - thumbHeight;
+
+                // Clamp the thumb's new position within the bounds of the track
+                let clampedThumbTop = Math.max(0, Math.min(newThumbTop, thumbMaxTravel));
+                customScrollbarThumb.style.top = `${clampedThumbTop}px`;
+
+                // Calculate the corresponding scroll position for the main document
+                const scrollPercentage = clampedThumbTop / (thumbMaxTravel > 0 ? thumbMaxTravel : 1);
+                const documentHeight = document.documentElement.scrollHeight;
+                const viewportHeight = document.documentElement.clientHeight;
+                const scrollableHeight = documentHeight - viewportHeight;
+                document.documentElement.scrollTop = scrollPercentage * scrollableHeight; // Apply scroll to the document
+            });
+
+            // Handle mouse up to end dragging
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    customScrollbarThumb.classList.remove('bg-blue-600'); // Reset thumb color
+                }
+            });
+        });
+    </script>
+</body>
+</html>
