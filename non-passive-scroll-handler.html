@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Non-Passive Scroll Observer</title>
+    <!-- Tailwind CSS for basic styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Apply Inter font and basic background/text colors */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            color: #334155; /* Dark gray text */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; /* Ensure body takes full viewport height for centering */
+            margin: 0;
+            padding: 1rem; /* Add some padding on smaller screens */
+        }
+
+        /* Ensure the main container is scrollable if content overflows */
+        #content-container {
+            /* max-h-[70vh] makes the container take up to 70% of the viewport height */
+            /* overflow-y-auto adds a scrollbar if content exceeds the max height */
+            /* Tailwind classes already handle responsiveness for width, padding, etc. */
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+    <div class="max-w-2xl w-full mx-auto bg-white p-6 rounded-lg shadow-xl border border-gray-100">
+        <h1 class="text-3xl sm:text-4xl font-extrabold text-center mb-6 text-indigo-700">
+            Scrollable Content with Non-Passive Observer
+        </h1>
+        <p class="mb-6 text-gray-600 text-base sm:text-lg leading-relaxed">
+            This page demonstrates a **non-passive scroll observer**. Scroll the content inside the box below, and you'll see messages appear in your browser's developer console for each scroll event. A non-passive listener means JavaScript can potentially prevent the default scrolling behavior, offering more control.
+        </p>
+        <div id="content-container" class="border border-gray-200 p-4 rounded-md overflow-y-auto max-h-[65vh] bg-gray-50">
+            <!-- Lorem ipsum content will be inserted here by JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        // Ensure the DOM is fully loaded before running the script
+        document.addEventListener('DOMContentLoaded', () => {
+            const contentContainer = document.getElementById('content-container');
+
+            // JavaScript loop to insert 100 "lorem ipsum" paragraphs
+            for (let i = 0; i < 100; i++) {
+                const p = document.createElement('p');
+                p.textContent = `Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. (Item ${i + 1}/100)`;
+                // Add Tailwind classes for styling paragraphs
+                p.classList.add('mb-3', 'text-sm', 'sm:text-base', 'text-gray-700', 'leading-relaxed');
+                contentContainer.appendChild(p);
+            }
+
+            // Set up the non-passive scroll observer
+            // The `{ passive: false }` option explicitly tells the browser that this event listener
+            // *might* call `event.preventDefault()`, meaning the browser must wait for the JS
+            // handler to complete before performing its default scroll action.
+            contentContainer.addEventListener('scroll', (event) => {
+                // Log a message to the console every time a scroll event is detected
+                console.log('Non-passive scroll event detected!', event.type, 'Timestamp:', event.timeStamp);
+
+                // IMPORTANT NOTE:
+                // Uncommenting the line below (event.preventDefault()) would prevent the actual scrolling
+                // of the content inside the container. While it explicitly demonstrates the
+                // non-passive nature by blocking the default action, it's generally undesirable
+                // for scroll events as it would break the user's ability to scroll smoothly.
+                // It's shown here for educational purposes.
+                // if (event.cancelable) {
+                //     event.preventDefault();
+                // }
+            }, { passive: false }); // <-- This is the key for a non-passive listener
+
+            console.log('--- Script Initialized ---');
+            console.log('Non-passive scroll observer attached to the content container.');
+            console.log('Please open your browser\'s developer console (usually F12 or Cmd+Option+I) and scroll the content inside the box to see the events being logged.');
+            console.log('--------------------------');
+        });
+    </script>
+</body>
+</html>
