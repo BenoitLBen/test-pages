@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scrollable Sample Text Page with Custom Scrollbar (No Inertia)</title>
+    <title>Scrollable Sample Text Page with Custom Scrollbar and Animation</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Apply Inter font and basic styling */
@@ -24,7 +24,8 @@
             display: none;
         }
 
-        .container {
+        /* Styles for the main scrollable text content */
+        .text-container { /* Renamed from .container to avoid conflict with animation container */
             max-width: 800px;
             margin: 2rem auto;
             padding: 2rem;
@@ -33,7 +34,7 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
         }
 
-        h1 {
+        .text-container h1 { /* Scoped H1 for text container */
             color: #1a202c; /* text-gray-900 */
             font-size: 2.25rem; /* text-4xl */
             font-weight: 700; /* font-bold */
@@ -41,7 +42,7 @@
             text-align: center;
         }
 
-        p {
+        .text-container p { /* Scoped P for text container */
             margin-bottom: 1.25rem; /* mb-5 */
             text-align: justify;
         }
@@ -72,35 +73,61 @@
             background-color: #2563eb; /* Darker blue on drag */
             cursor: grabbing;
         }
+
+        /* Styles for the animation canvas and its container */
+        .animation-area { /* New container for the animation */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1.5rem; /* p-6 */
+            background-color: #ffffff;
+            border-radius: 1rem; /* rounded-2xl */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-xl */
+            margin: 2rem auto; /* Center it and give some vertical margin */
+            max-width: fit-content; /* Adjust width to content */
+        }
+
+        .animation-area h1 { /* Scoped H1 for animation area */
+            font-size: 1.875rem; /* text-3xl */
+            font-weight: 700; /* font-bold */
+            color: #1f2937; /* gray-900 */
+            margin-bottom: 1.5rem; /* mb-6 */
+            text-align: center;
+        }
+
+        #wheelAnimationCanvas { /* Canvas for the spinning wheel */
+            background-color: #ffffff;
+            border: 2px solid #3b82f6; /* Tailwind blue-500 */
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+            display: block; /* Remove extra space below canvas */
+            max-width: 90vw; /* Ensure it fits smaller screens */
+            max-height: 90vh; /* Ensure it fits smaller screens */
+        }
+        .info-box {
+            background-color: #e0f2f7; /* light blue for info */
+            padding: 0.75rem 1.25rem; /* py-3 px-5 */
+            border-radius: 0.5rem; /* rounded-lg */
+            margin-top: 1.5rem; /* mt-6 */
+            font-size: 1rem; /* text-base */
+            color: #0c4a6e; /* dark blue for text */
+            text-align: center;
+        }
     </style>
 </head>
 <body class="p-4">
-    <div class="container">
+    <!-- Animation Area -->
+    <div class="animation-area">
+        <h1>Spinning Wheel with FPS Counter</h1>
+        <canvas id="wheelAnimationCanvas"></canvas>
+        <div class="info-box">
+            <p>Observe the smooth animation and the real-time FPS counter in the top-left corner of the wheel.</p>
+        </div>
+    </div>
+
+    <!-- Original Scrollable Content -->
+    <div class="text-container"> <!-- Renamed class to 'text-container' to avoid conflict -->
         <h1>Long Sample Text for Scrolling</h1>
-
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-
-        <p>Curabitur pretium tincidunt lacus, eget facilisis dolor cursus vel. Nunc euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl. Sed euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl. Sed euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl. Sed euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl.</p>
-
-        <p>Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante. Donec eu libero sit amet quam egestas semper. Aenean ultricies mi vitae est. Mauris placerat eleifend leo.</p>
-
-        <p>Phasellus nec sem in lectus fermentum aliquet. Sed vel justo eget quam viverra egestas. Nulla facilisi. Proin vel diam id dolor scelerisque commodo. Fusce ut orci id libero congue auctor. Donec vel elit eget erat aliquet efficitur. Cras vitae eros vel nunc consectetur ultrices. Aliquam erat volutpat.</p>
-
-        <p>In hac habitasse platea dictumst. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Donec eu est a elit facilisis bibendum. Integer non mauris sed enim fringilla scelerisque. Nulla facilisi. Sed non justo vel enim facilisis aliquet. Praesent mollis, arcu ac cursus placerat, orci tortor ultricies nisl, nec ultricies nisl nunc nec nisl.</p>
-
-        <p>Vivamus eget elit eget erat aliquet efficitur. Cras vitae eros vel nunc consectetur ultrices. Aliquam erat volutpat. In hac habitasse platea dictumst. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Donec eu est a elit facilisis bibendum. Integer non mauris sed enim fringilla scelerisque. Nulla facilisi. Sed non justo vel enim facilisis aliquet. Praesent mollis, arcu ac cursus placerat, orci tortor ultricies nisl, nec ultricies nisl nunc nec nisl.</p>
-
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-
-        <p>Curabitur pretium tincidunt lacus, eget facilisis dolor cursus vel. Nunc euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl. Sed euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl. Sed euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl. Sed euismod, nisl sit amet consectetur varius, nisl nunc consectetur nisi, nec consectetur nisl nunc nec nisl.</p>
-
-        <p>Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante. Donec eu libero sit amet quam egestas semper. Aenean ultricies mi vitae est. Mauris placerat eleifend leo.</p>
-
-        <p>Phasellus nec sem in lectus fermentum aliquet. Sed vel justo eget quam viverra egestas. Nulla facilisi. Proin vel diam id dolor scelerisque commodo. Fusce ut orci id libero congue auctor. Donec vel elit eget erat aliquet efficitur. Cras vitae eros vel nunc consectetur ultrices. Aliquam erat volutpat.</p>
-
-        <p>In hac habitasse platea dictumst. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Donec eu est a elit facilisis bibendum. Integer non mauris sed enim fringilla scelerisque. Nulla facilisi. Sed non justo vel enim facilisis aliquet. Praesent mollis, arcu ac cursus placerat, orci tortor ultricies nisl, nec ultricies nisl nunc nec nisl.</p>
-
-        <p>Vivamus eget elit eget erat aliquet efficitur. Cras vitae eros vel nunc consectetur ultrices. Aliquam erat volutpat. In hac habitasse platea dictumst. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Donec eu est a elit facilisis bibendum. Integer non mauris sed enim fringilla scelerisque. Nulla facilisi. Sed non justo vel enim facilisis aliquet. Praesent mollis, arcu ac cursus placerat, orci tortor ultricies nisl, nec ultricies nisl nunc nec nisl.</p>
 
         <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
 
@@ -284,5 +311,110 @@
             });
         });
     </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('wheelAnimationCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // Set canvas dimensions dynamically for responsiveness
+            const setCanvasSize = () => {
+                const size = Math.min(window.innerWidth * 0.7, window.innerHeight * 0.6, 500); // Max 500px, responsive to viewport
+                canvas.width = size;
+                canvas.height = size;
+            };
+
+            window.addEventListener('resize', setCanvasSize);
+            setCanvasSize(); // Initial set
+
+            let angle = 0; // Initial angle for the spinning wheel
+            const rotationSpeed = 0.05; // Radians per frame
+            let lastFrameTime = performance.now(); // Time of the last frame
+            const frameTimes = []; // Array to store recent frame times
+            const maxFrameTimes = 60; // Number of frames to average for FPS
+
+            // Function to draw the spinning wheel
+            function drawWheel() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const radius = Math.min(centerX, centerY) * 0.7; // Wheel radius
+
+                // Draw the outer circle
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#fca5a5'; // Tailwind red-300
+                ctx.fill();
+                ctx.strokeStyle = '#ef4444'; // Tailwind red-500
+                ctx.lineWidth = 4;
+                ctx.stroke();
+
+                // Draw spokes/sections
+                const numSpokes = 8;
+                for (let i = 0; i < numSpokes; i++) {
+                    const startAngle = angle + (i * Math.PI * 2 / numSpokes);
+                    const endAngle = angle + ((i + 1) * Math.PI * 2 / numSpokes);
+
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY);
+                    ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                    ctx.closePath();
+                    ctx.fillStyle = (i % 2 === 0) ? '#a7f3d0' : '#bfdbfe'; // Tailwind emerald-200 / blue-200
+                    ctx.fill();
+                    ctx.strokeStyle = '#374151'; // Tailwind gray-700
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+
+                // Draw center circle
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius * 0.2, 0, Math.PI * 2);
+                ctx.fillStyle = '#10b981'; // Tailwind emerald-500
+                ctx.fill();
+                ctx.strokeStyle = '#059669'; // Tailwind emerald-600
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Update angle for next frame
+                angle += rotationSpeed;
+                if (angle >= Math.PI * 2) {
+                    angle -= Math.PI * 2;
+                }
+            }
+
+            // Function to calculate and display FPS
+            function displayFPS() {
+                const currentTime = performance.now();
+                const deltaTime = currentTime - lastFrameTime;
+                lastFrameTime = currentTime;
+
+                frameTimes.push(deltaTime);
+                if (frameTimes.length > maxFrameTimes) {
+                    frameTimes.shift(); // Remove the oldest frame time
+                }
+
+                const averageDeltaTime = frameTimes.reduce((sum, time) => sum + time, 0) / frameTimes.length;
+                const fps = 1000 / averageDeltaTime; // FPS = 1000 ms / average ms per frame
+
+                ctx.font = 'bold 20px Inter, sans-serif';
+                ctx.fillStyle = '#333333'; // Dark gray
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+                ctx.fillText(`FPS: ${fps.toFixed(1)}`, 10, 10); // Display FPS in upper-left corner
+            }
+
+            // Main animation loop
+            function animate() {
+                drawWheel();
+                displayFPS();
+                requestAnimationFrame(animate); // Request the next frame
+            }
+
+            // Start the animation loop
+            animate();
+        });
+    </script>
 </body>
 </html>
+
