@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zooming Mandelbrot Sets</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Apply Inter font to the body */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Basic styling for canvas elements */
+        canvas {
+            background-color: #000; /* Black background for the fractal */
+            border: 1px solid #333; /* Subtle border for separation */
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-900 text-gray-100 p-6 flex flex-col items-center justify-center">
+
+    <!-- Page Header -->
+    <h1 class="text-4xl font-bold mb-6 text-blue-400 text-center">Zooming Mandelbrot Sets</h1>
+    <p class="text-lg mb-8 text-gray-300 text-center max-w-2xl">
+        Explore the infinite complexity of the Mandelbrot fractal as each of these 10 canvases zooms into a unique part of its mesmerizing geometry.
+    </p>
+
+    <!-- Grid Container for Canvases -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 p-4 bg-gray-800 rounded-xl shadow-2xl">
+        <!-- 10 Canvas Elements - each will display a unique zooming Mandelbrot set -->
+        <canvas id="mandelbrotCanvas1" class="w-48 h-48 rounded-lg shadow-lg"></canvas>
+        <canvas id="mandelbrotCanvas2" class="w-48 h-48 rounded-lg shadow-lg"></canvas>
+        <canvas id="mandelbrotCanvas3" class="w-48 h-48 rounded-lg shadow-lg"></canvas>
+        <canvas id="mandelbrotCanvas4" class="w-48 h-48 rounded-lg shadow-lg"></canvas>
+        <canvas id="mandelbrotCanvas5" class="w-48 h-48 rounded-lg shadow-lg"></canvas>
+        <canvas id="mandelbrotCanvas6" class="w-48 h-48 rounded-lg shadow-lg"></canvas>
+        <canvas id="mandelbrotCanvas7" class="w-48 h-48 rounded-lg shadow-lg"></canvas>
+        <canvas id="mandelbrotCanvas8" class="w-48 h-48 rounded-lg shadow-lg"></canvas>
+        <canvas id="mandelbrotCanvas9" class="w-48 h-48 rounded-lg shadow-lg"></canvas>
+        <canvas id="mandelbrotCanvas10" class="w-48 h-48 rounded-lg shadow-lg"></canvas>
+    </div>
+
+    <!-- Footer Information -->
+    <div class="mt-8 text-gray-400 text-sm text-center">
+        <p>Each fractal is rendered and animated independently.</p>
+        <p>Refresh the page to see new variations in zoom speed and starting points.</p>
+    </div>
+
+    <script>
+        // Array to store parameters for each Mandelbrot renderer
+        let mandelbrots = [];
+
+        /**
+         * Converts an HSL color value to RGB. Conversion formula
+         * adapted from http://en.wikipedia.org/wiki/HSL_color_space.
+         * Assumes h, s, and l are contained in the set [0, 360], [0, 100], [0, 100] and
+         * returns r, g, and b in the set [0, 255].
+         *
+         * @param   Number  h       The hue
+         * @param   Number  s       The saturation
+         * @param   Number  l       The lightness
+         * @return  Array           The RGB representation
+         */
+        function hslToRgb(h, s, l) {
+            h /= 360;
+            s /= 100;
+            l /= 100;
+            let r, g, b;
+
+            if (s === 0) {
+                r = g = b = l; // achromatic
+            } else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1 / 6) return p + (q - p) * 6 * t;
+                    if (t < 1 / 2) return q;
+                    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+                    return p;
+                };
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1 / 3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1 / 3);
+            }
+            return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+        }
+
+        /**
+         * Initializes a single Mandelbrot canvas with its context and parameters.
+         *
+         * @param {string} canvasId The ID of the canvas element.
+         */
+        function initMandelbrot(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) {
+                console.error(`Canvas with ID ${canvasId} not found.`);
+                return;
+            }
+            const ctx = canvas.getContext('2d');
+
+            // Get the actual display size of the canvas element from its CSS styling
+            const displayWidth = canvas.offsetWidth;
+            const displayHeight = canvas.offsetHeight;
+
+            // Get the device pixel ratio for sharp rendering on high-DPI screens
+            const dpr = window.devicePixelRatio || 1;
+
+            // Set the canvas's internal rendering resolution based on its display size and DPR
+            canvas.width = displayWidth * dpr;
+            canvas.height = displayHeight * dpr;
+
+            // Scale the rendering context to account for the device pixel ratio.
+            // This means drawing commands use CSS pixels, but are rendered at native resolution.
+            ctx.scale(dpr, dpr);
+
+            // Add this Mandelbrot instance's parameters to the global array
+            mandelbrots.push({
+                canvas: canvas,
+                ctx: ctx,
+                displayWidth: displayWidth,   // Store display dimensions for calculations (CSS pixels)
+                displayHeight: displayHeight, // These are the dimensions used for pixel iteration (CSS pixels)
+                dpr: dpr,                     // Store device pixel ratio for correct calculations
+                centerX: -0.5 + (Math.random() - 0.5) * 1.0, // Random starting X center for a wider view
+                centerY: 0.0 + (Math.random() - 0.5) * 1.0, // Random starting Y center for a wider view
+                zoom: 2.0,                                  // Initial wider zoom level (larger value means less zoomed in, good for starting view)
+                animationSpeed: 1.01 + Math.random() * 0.005, // Varied zoom speeds (factor to divide by for zooming in)
+                maxIterations: 60 + Math.floor(Math.random() * 40), // More iterations for better initial detail
+                colorOffset: Math.floor(Math.random() * 360) // Random color offset for visual variety
+            });
+        }
+
+        /**
+         * Draws the Mandelbrot set on a given canvas based on its parameters.
+         *
+         * @param {Object} mandelbrot The object containing the canvas and its rendering parameters.
+         */
+        function drawMandelbrot(mandelbrot) {
+            const { ctx, centerX, centerY, zoom, maxIterations, colorOffset, displayWidth, displayHeight, canvas, dpr } = mandelbrot;
+
+            // Create a new ImageData object for the canvas's physical pixel dimensions
+            // This is crucial for High DPI screens where canvas.width/height are larger than displayWidth/height
+            const imageData = ctx.createImageData(canvas.width, canvas.height);
+            const pixels = imageData.data; // Reference to the pixel data array
+
+            // Iterate over each PHYSICAL pixel in the canvas
+            for (let x_physical = 0; x_physical < canvas.width; x_physical++) {
+                for (let y_physical = 0; y_physical < canvas.height; y_physical++) {
+                    // Convert physical pixel coordinates to logical (CSS) coordinates
+                    // This is necessary because the zoom and center are relative to the logical view
+                    const x_logical = x_physical / dpr;
+                    const y_logical = y_physical / dpr;
+
+                    // Map logical pixel coordinates to the complex plane (z = x + yi)
+                    const zx = (x_logical - displayWidth / 2) * zoom / displayWidth + centerX;
+                    const zy = (y_logical - displayHeight / 2) * zoom / displayHeight + centerY;
+
+                    let cX = zx; // Initial complex number c (c_real)
+                    let cY = zy; // Initial complex number c (c_imaginary)
+
+                    let iteration = 0;
+                    // Mandelbrot iteration: Z(n+1) = Z(n)^2 + c
+                    // We check if the magnitude squared (cX*cX + cY*cY) escapes 2 (magnitude 4 squared)
+                    while (cX * cX + cY * cY < 4 && iteration < maxIterations) {
+                        const tempX = cX * cX - cY * cY + zx; // Calculate new real part (Z_real^2 - Z_imaginary^2 + c_real)
+                        cY = 2 * cX * cY + zy;                // Calculate new imaginary part (2 * Z_real * Z_imaginary + c_imaginary)
+                        cX = tempX;
+                        iteration++;
+                    }
+
+                    // Calculate the index for the current PHYSICAL pixel in the pixel data array (RGBA)
+                    // Use canvas.width (physical width) for calculating row offset
+                    const pixelIndex = (x_physical + y_physical * canvas.width) * 4;
+
+                    // Color the pixel based on whether it escaped the set or not
+                    if (iteration === maxIterations) {
+                        // If it didn't escape within maxIterations, it's considered part of the set (black)
+                        pixels[pixelIndex] = 0;     // Red
+                        pixels[pixelIndex + 1] = 0; // Green
+                        pixels[pixelIndex + 2] = 0; // Blue
+                        pixels[pixelIndex + 3] = 255; // Alpha (opaque)
+                    } else {
+                        // If it escaped, color it based on the number of iterations
+                        // Using HSL to RGB conversion for richer colors
+                        const [r, g, b] = hslToRgb(
+                            (iteration / maxIterations * 360 + colorOffset) % 360, // Hue based on iteration and offset
+                            100, // Full saturation
+                            50   // Mid lightness
+                        );
+                        pixels[pixelIndex] = r;
+                        pixels[pixelIndex + 1] = g;
+                        pixels[pixelIndex + 2] = b;
+                        pixels[pixelIndex + 3] = 255; // Alpha (opaque)
+                    }
+                }
+            }
+            // Put the generated pixel data onto the canvas
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        /**
+         * The main animation loop. It updates the zoom level for each Mandelbrot instance
+         * and then redraws them. It uses requestAnimationFrame for smooth animation.
+         */
+        function animate() {
+            mandelbrots.forEach(mandelbrot => {
+                // Decrease the zoom level (smaller 'zoom' value means more zoomed in)
+                mandelbrot.zoom /= mandelbrot.animationSpeed;
+
+                // Dynamically increase maxIterations as we zoom deeper for more detail
+                // This formula increases iterations logarithmically with zoom depth
+                mandelbrot.maxIterations = 60 + Math.floor(Math.log(2.0 / mandelbrot.zoom) * 20);
+                if (mandelbrot.maxIterations > 500) mandelbrot.maxIterations = 500; // Cap iterations to prevent performance issues
+
+
+                // If zoom becomes too small (too zoomed in), reset to initial state
+                // This prevents floating point precision issues at very high zoom levels
+                if (mandelbrot.zoom < 1e-15) { // Adjusted threshold for deeper zoom before reset
+                    mandelbrot.zoom = 2.0; // Reset to a wider initial view
+                    // Pick a new random center for a different zoom path
+                    mandelbrot.centerX = -0.5 + (Math.random() - 0.5) * 1.0;
+                    mandelbrot.centerY = 0.0 + (Math.random() - 0.5) * 1.0;
+                    mandelbrot.animationSpeed = 1.01 + Math.random() * 0.005; // New random speed
+                    // Reset maxIterations for the new starting zoom
+                    mandelbrot.maxIterations = 60 + Math.floor(Math.random() * 40);
+                    mandelbrot.colorOffset = Math.floor(Math.random() * 360); // New random color offset
+                }
+                // Redraw the Mandelbrot set for the current zoom level
+                drawMandelbrot(mandelbrot);
+            });
+            // Request the next animation frame
+            requestAnimationFrame(animate);
+        }
+
+        // Initialize all Mandelbrot canvases when the window loads
+        window.onload = function() {
+            // Loop through and initialize each of the 10 canvases
+            for (let i = 1; i <= 10; i++) {
+                initMandelbrot(`mandelbrotCanvas${i}`);
+            }
+            // Start the animation loop
+            animate();
+        };
+    </script>
+</body>
+</html>
