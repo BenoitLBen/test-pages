@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Allocator</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white p-8 rounded-lg shadow-xl max-w-lg w-full text-center">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Memory Allocation Demo</h1>
+        <p class="text-gray-600 mb-4">
+            This page will attempt to allocate approximately 1 GiB of memory using multiple 10 MiB ArrayBuffers.
+            Check your browser's task manager or developer tools to observe memory usage.
+        </p>
+        <div id="status-message" class="bg-blue-100 border border-blue-400 text-blue-800 px-4 py-3 rounded-lg relative mb-6">
+            <p class="font-semibold">Status: <span id="allocationStatus">Initializing...</span></p>
+            <p class="text-sm">Please wait while memory is allocated.</p>
+        </div>
+        <button id="deallocateButton" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-75" style="display: none;">
+            Deallocate Memory
+        </button>
+        <p class="text-gray-500 text-sm mt-4">
+            (Note: Memory deallocation requires garbage collection, which is managed by the browser.)
+        </p>
+    </div>
+
+    <script>
+        // Array to hold the ArrayBuffer objects to prevent garbage collection
+        let allocatedBuffers = [];
+        const MB = 1024 * 1024; // Bytes in a Megabyte
+        const GB = 1024 * MB;   // Bytes in a Gigabyte
+
+        const targetMemoryBytes = GB; // Target 1 GiB
+        const bufferSize = 10 * MB; // Each ArrayBuffer is 10 MiB
+
+        // Calculate how many 10 MiB buffers are needed for 1 GiB
+        const numberOfBuffers = Math.ceil(targetMemoryBytes / bufferSize); // Use ceil to ensure we meet or slightly exceed the target
+
+        const statusElement = document.getElementById('allocationStatus');
+        const deallocateButton = document.getElementById('deallocateButton');
+
+        /**
+         * Allocates memory by creating a specified number of ArrayBuffer objects.
+         */
+        function allocateMemory() {
+            try {
+                console.log(`Attempting to allocate ${numberOfBuffers} ArrayBuffers, each ${bufferSize / MB} MiB.`);
+                console.log(`Total target memory: ${(numberOfBuffers * bufferSize) / GB} GiB`);
+
+                statusElement.textContent = `Allocating ${Math.round((numberOfBuffers * bufferSize) / MB)} MiB...`;
+
+                for (let i = 0; i < numberOfBuffers; i++) {
+                    const buffer = new ArrayBuffer(bufferSize);
+                    // Optionally fill the buffer to ensure memory is truly committed
+                    // new Uint8Array(buffer).fill(i % 256);
+                    allocatedBuffers.push(buffer);
+                    if (i % 10 === 0) { // Update status periodically for large allocations
+                        statusElement.textContent = `Allocating... ${i + 1}/${numberOfBuffers} buffers created.`;
+                    }
+                }
+
+                const allocatedSizeMB = (allocatedBuffers.length * bufferSize) / MB;
+                const allocatedSizeGB = allocatedSizeMB / 1024;
+
+                statusElement.textContent = `Successfully allocated ~${allocatedSizeGB.toFixed(2)} GiB (${allocatedSizeMB.toFixed(2)} MiB)!`;
+                console.log(`Successfully allocated ${allocatedBuffers.length} ArrayBuffers.`);
+                console.log(`Total allocated: ${allocatedSizeMB.toFixed(2)} MiB`);
+
+                deallocateButton.style.display = 'block'; // Show deallocate button
+
+            } catch (error) {
+                statusElement.textContent = `Allocation failed: ${error.message}. You might have run out of memory.`;
+                console.error("Memory allocation error:", error);
+            }
+        }
+
+        /**
+         * Deallocates memory by clearing the array holding ArrayBuffer objects,
+         * allowing them to be garbage collected.
+         */
+        function deallocateMemory() {
+            console.log("Attempting to deallocate memory...");
+            allocatedBuffers = []; // Clear the array
+            statusElement.textContent = "Memory deallocated (awaiting garbage collection).";
+            deallocateButton.style.display = 'none';
+            console.log("Array holding buffers cleared. Memory will be garbage collected by the browser.");
+            // Force a minor garbage collection attempt (not guaranteed to work in all browsers/environments)
+            // if (window.gc) {
+            //     window.gc(); // Only available in some browser dev tools or specific environments
+            //     console.log("Garbage collection attempted via window.gc()");
+            // }
+        }
+
+        // Event listener for the deallocate button
+        deallocateButton.addEventListener('click', deallocateMemory);
+
+        // Allocate memory when the page loads
+        window.onload = allocateMemory;
+    </script>
+</body>
+</html>
