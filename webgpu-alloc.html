@@ -6,37 +6,11 @@
     <title>WebGPU Allocator</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; background-color: #1a1a1a; color: #e0e0e0; }
-        #info { padding: 10px; background-color: #333; border-bottom: 1px solid #555; display: flex; justify-content: space-between; align-items: center; }
-        #info span { margin-right: 20px; }
-        #canvas-container { flex-grow: 1; display: flex; justify-content: center; align-items: center; }
-        canvas { display: block; background-color: #000; border: 1px solid #555; }
-        .message-box {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #444;
-            color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            display: none; /* Hidden by default */
-        }
-        .message-box button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
         #controls {
             padding: 10px;
             text-align: center;
             background-color: #333;
-            border-top: 1px solid #555;
+            border-bottom: 1px solid #555; /* Changed from border-top */
             display: flex; /* Use flexbox for horizontal alignment */
             justify-content: center; /* Center buttons horizontally */
             gap: 15px; /* Space between buttons */
@@ -66,9 +40,47 @@
             background-color: #6c757d;
             cursor: not-allowed;
         }
+
+        #info {
+            padding: 10px;
+            background-color: #333;
+            border-bottom: 1px solid #555;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #info span { margin-right: 20px; }
+        #canvas-container { flex-grow: 1; display: flex; justify-content: center; align-items: center; }
+        canvas { display: block; background-color: #000; border: 1px solid #555; }
+        .message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #444;
+            color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: none; /* Hidden by default */
+        }
+        .message-box button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
+    <div id="controls">
+        <button id="startButton">Start Allocation</button>
+        <button id="stopButton">Stop Allocation</button>
+    </div>
     <div id="info">
         <span id="adapter-info">Adapter: Not available</span>
         <span id="device-info">Device: Not available</span>
@@ -77,10 +89,6 @@
     </div>
     <div id="canvas-container">
         <canvas id="gpuCanvas"></canvas>
-    </div>
-    <div id="controls">
-        <button id="startButton">Start Allocation</button>
-        <button id="stopButton">Stop Allocation</button>
     </div>
 
     <div id="messageBox" class="message-box">
