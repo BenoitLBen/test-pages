@@ -37,8 +37,11 @@
             text-align: center;
             background-color: #333;
             border-top: 1px solid #555;
+            display: flex; /* Use flexbox for horizontal alignment */
+            justify-content: center; /* Center buttons horizontally */
+            gap: 15px; /* Space between buttons */
         }
-        #startButton {
+        #startButton, #stopButton {
             background-color: #28a745;
             color: white;
             border: none;
@@ -51,7 +54,13 @@
         #startButton:hover {
             background-color: #218838;
         }
-        #startButton:disabled {
+        #stopButton {
+            background-color: #dc3545; /* Red for stop button */
+        }
+        #stopButton:hover {
+            background-color: #c82333;
+        }
+        #startButton:disabled, #stopButton:disabled {
             background-color: #6c757d;
             cursor: not-allowed;
         }
@@ -69,6 +78,7 @@
     </div>
     <div id="controls">
         <button id="startButton">Start Allocation</button>
+        <button id="stopButton">Stop Allocation</button>
     </div>
 
     <div id="messageBox" class="message-box">
@@ -164,7 +174,7 @@
             document.getElementById('startButton').disabled = false;
         }
 
-        const bufferSize = 100 * 1024 * 1024; // 100 MB
+        const bufferSize = 100 * 1024 * 1024; // 100 MB (must be a multiple of 4 for Uint32Array)
         const maxAllocationGiB = 10; // Maximum allocation in GiB
         const maxAllocationBytes = maxAllocationGiB * 1024 * 1024 * 1024; // 10 GiB in bytes
 
@@ -181,7 +191,9 @@
                 if (animationFrameId) {
                     cancelAnimationFrame(animationFrameId);
                 }
-                document.getElementById('startButton').disabled = true; // Disable button after completion
+                document.getElementById('startButton').disabled = true; // Disable start button
+                document.getElementById('stopButton').disabled = true; // Disable stop button
+                allocationStarted = false; // Reset flag
                 return;
             }
 
@@ -192,11 +204,11 @@
                     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
                 });
 
-                // Generate pseudo-random data to fill the buffer
-                // crypto.getRandomValues has a size limitation, so using Math.random for larger buffers
-                const randomData = new Uint8Array(bufferSize);
-                for (let i = 0; i < bufferSize; i++) {
-                    randomData[i] = Math.floor(Math.random() * 256); // Fill with random byte values (0-255)
+                // Generate pseudo-random data to fill the buffer, 32 bits at a time
+                // The bufferSize must be a multiple of 4 bytes for Uint32Array
+                const randomData = new Uint32Array(bufferSize / 4); // Divide by 4 as Uint32Array stores 4 bytes per element
+                for (let i = 0; i < randomData.length; i++) {
+                    randomData[i] = Math.floor(Math.random() * 4294967296); // Fill with random 32-bit unsigned integer values
                 }
 
                 // Write the random data to the newly created buffer
@@ -223,7 +235,9 @@
                 if (animationFrameId) {
                     cancelAnimationFrame(animationFrameId);
                 }
-                document.getElementById('startButton').disabled = true; // Disable button on error
+                document.getElementById('startButton').disabled = true; // Disable start button
+                document.getElementById('stopButton').disabled = true; // Disable stop button
+                allocationStarted = false; // Reset flag
                 return;
             }
 
@@ -250,7 +264,9 @@
         document.getElementById('startButton').addEventListener('click', () => {
             if (!allocationStarted && device && context && format) { // Ensure WebGPU is ready and allocation hasn't started
                 allocationStarted = true;
-                document.getElementById('startButton').disabled = true; // Disable button once started
+                document.getElementById('startButton').disabled = true; // Disable start button once started
+                document.getElementById('stopButton').disabled = false; // Enable stop button
+
                 // Start the allocation process after a short delay
                 setTimeout(() => {
                     animationFrameId = requestAnimationFrame(allocateBuffer);
@@ -260,8 +276,24 @@
             }
         });
 
-        // Initially disable the button until WebGPU is ready
+        // Add event listener for the stop button
+        document.getElementById('stopButton').addEventListener('click', () => {
+            if (allocationStarted) { // Only stop if allocation is ongoing
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null; // Clear the ID
+                }
+                allocationStarted = false; // Reset flag
+                document.getElementById('startButton').disabled = false; // Enable start button
+                document.getElementById('stopButton').disabled = true; // Disable stop button
+                document.getElementById('rate-info').textContent = `Rate: Stopped`;
+                showMessageBox("Allocation stopped by user.");
+            }
+        });
+
+        // Initially disable both buttons until WebGPU is ready
         document.getElementById('startButton').disabled = true;
+        document.getElementById('stopButton').disabled = true;
     </script>
 </body>
 </html>
