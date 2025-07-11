@@ -188,8 +188,19 @@
             try {
                 const newBuffer = device.createBuffer({
                     size: bufferSize,
+                    // We need COPY_DST to write data to the buffer using device.queue.writeBuffer
                     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
                 });
+
+                // Generate pseudo-random data to fill the buffer
+                // crypto.getRandomValues has a size limitation, so using Math.random for larger buffers
+                const randomData = new Uint8Array(bufferSize);
+                for (let i = 0; i < bufferSize; i++) {
+                    randomData[i] = Math.floor(Math.random() * 256); // Fill with random byte values (0-255)
+                }
+
+                // Write the random data to the newly created buffer
+                device.queue.writeBuffer(newBuffer, 0, randomData.buffer);
 
                 // Retain the buffer by adding it to the array
                 allocatedBuffers.push(newBuffer);
@@ -206,8 +217,8 @@
                 lastTime = currentTime;
 
             } catch (e) {
-                console.error("Buffer allocation failed:", e);
-                showMessageBox(`Failed to allocate buffer: ${e.message}. Possible out of memory.`);
+                console.error("Buffer allocation or data writing failed:", e);
+                showMessageBox(`Failed to allocate or write to buffer: ${e.message}. Possible out of memory.`);
                 // Stop further allocations if an error occurs
                 if (animationFrameId) {
                     cancelAnimationFrame(animationFrameId);
