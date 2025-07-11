@@ -32,6 +32,29 @@
             cursor: pointer;
             margin-top: 10px;
         }
+        #controls {
+            padding: 10px;
+            text-align: center;
+            background-color: #333;
+            border-top: 1px solid #555;
+        }
+        #startButton {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        #startButton:hover {
+            background-color: #218838;
+        }
+        #startButton:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -44,6 +67,9 @@
     <div id="canvas-container">
         <canvas id="gpuCanvas"></canvas>
     </div>
+    <div id="controls">
+        <button id="startButton">Start Allocation</button>
+    </div>
 
     <div id="messageBox" class="message-box">
         <p id="messageText"></p>
@@ -51,6 +77,12 @@
     </div>
 
     <script type="module">
+        // Global variables for WebGPU device and context, needed by startButton listener
+        let device = null;
+        let context = null;
+        let format = null;
+        let allocationStarted = false; // Flag to prevent multiple starts
+
         // Helper function to display messages to the user
         function showMessageBox(message) {
             const messageBox = document.getElementById('messageBox');
@@ -86,7 +118,6 @@
                 return;
             }
 
-            let device;
             try {
                 device = await adapter.requestDevice();
                 document.getElementById('device-info').textContent = `Device: OK`;
@@ -97,102 +128,26 @@
             }
 
             const canvas = document.getElementById('gpuCanvas');
-            const context = canvas.getContext('webgpu');
+            context = canvas.getContext('webgpu'); // Assign to global context
 
             if (!context) {
                 showMessageBox("Could not get WebGPU context from canvas.");
                 return;
             }
 
-            const format = navigator.gpu.getPreferredCanvasFormat();
+            format = navigator.gpu.getPreferredCanvasFormat(); // Assign to global format
             context.configure({
                 device,
                 format,
                 alphaMode: 'opaque',
             });
 
-            const bufferSize = 100 * 1024 * 1024; // 100 MB
-            const maxAllocationGiB = 10; // Maximum allocation in GiB
-            const maxAllocationBytes = maxAllocationGiB * 1024 * 1024 * 1024; // 10 GiB in bytes
-
-            let currentBuffer = null;
-            let lastTime = performance.now();
-            let totalAllocated = 0;
-            let allocationCount = 0;
-            let animationFrameId = null; // To store the requestAnimationFrame ID
-
-            function allocateBuffer() {
-                // Stop allocation if maxAllocationBytes is reached
-                if (totalAllocated >= maxAllocationBytes) {
-                    document.getElementById('rate-info').textContent = `Rate: Allocation Complete`;
-                    showMessageBox(`Successfully allocated ${maxAllocationGiB} GiB. Stopping further allocations.`);
-                    if (animationFrameId) {
-                        cancelAnimationFrame(animationFrameId);
-                    }
-                    return;
-                }
-
-                try {
-                    const newBuffer = device.createBuffer({
-                        size: bufferSize,
-                        usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
-                    });
-
-                    // Clear previous buffer if exists to allow GC
-                    if (currentBuffer) {
-                        currentBuffer.destroy();
-                    }
-                    currentBuffer = newBuffer;
-
-                    totalAllocated += bufferSize;
-                    allocationCount++;
-
-                    const currentTime = performance.now();
-                    const deltaTime = (currentTime - lastTime) / 1000; // seconds
-                    const currentRate = bufferSize / deltaTime; // Bytes/second
-
-                    document.getElementById('size-info').textContent = `Size: ${(totalAllocated / (1024 * 1024)).toFixed(2)} MB`;
-                    document.getElementById('rate-info').textContent = `Rate: ${(currentRate / (1024 * 1024)).toFixed(2)} MB/s`;
-
-                    lastTime = currentTime;
-
-                } catch (e) {
-                    console.error("Buffer allocation failed:", e);
-                    showMessageBox(`Failed to allocate buffer: ${e.message}. Possible out of memory.`);
-                    // Stop further allocations if an error occurs
-                    if (animationFrameId) {
-                        cancelAnimationFrame(animationFrameId);
-                    }
-                    return;
-                }
-
-                // Render a small frame to ensure GPU is active
-                const commandEncoder = device.createCommandEncoder();
-                const passEncoder = commandEncoder.beginRenderPass({
-                    colorAttachments: [{
-                        view: context.getCurrentTexture().createView(),
-                        loadOp: 'clear',
-                        clearValue: { r: Math.random(), g: Math.random(), b: Math.random(), a: 1.0 },
-                        storeOp: 'store',
-                    }],
-                });
-                passEncoder.end();
-                device.queue.submit([commandEncoder.finish()]);
-
-                animationFrameId = requestAnimationFrame(allocateBuffer);
-            }
-
-            // Start the allocation process after a short delay to allow UI to render
-            setTimeout(() => {
-                animationFrameId = requestAnimationFrame(allocateBuffer);
-            }, 500); // 500ms delay
-
             // Handle canvas resizing
             function resizeCanvas() {
                 canvas.width = window.innerWidth * 0.8; // Example: 80% of window width
                 canvas.height = window.innerHeight * 0.6; // Example: 60% of window height
                 // Reconfigure context if needed (important for swap chain recreation)
-                if (context) {
+                if (context && device && format) { // Ensure device and format are available
                     context.configure({
                         device,
                         format,
@@ -204,9 +159,98 @@
 
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas(); // Initial resize
+
+            // Enable the start button once WebGPU is initialized
+            document.getElementById('startButton').disabled = false;
         }
 
+        const bufferSize = 100 * 1024 * 1024; // 100 MB
+        const maxAllocationGiB = 10; // Maximum allocation in GiB
+        const maxAllocationBytes = maxAllocationGiB * 1024 * 1024 * 1024; // 10 GiB in bytes
+
+        let allocatedBuffers = []; // Array to hold all allocated buffers
+        let lastTime = performance.now();
+        let totalAllocated = 0;
+        let animationFrameId = null; // To store the requestAnimationFrame ID
+
+        function allocateBuffer() {
+            // Stop allocation if maxAllocationBytes is reached
+            if (totalAllocated >= maxAllocationBytes) {
+                document.getElementById('rate-info').textContent = `Rate: Allocation Complete`;
+                showMessageBox(`Successfully allocated ${maxAllocationGiB} GiB. Stopping further allocations.`);
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                }
+                document.getElementById('startButton').disabled = true; // Disable button after completion
+                return;
+            }
+
+            try {
+                const newBuffer = device.createBuffer({
+                    size: bufferSize,
+                    usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
+                });
+
+                // Retain the buffer by adding it to the array
+                allocatedBuffers.push(newBuffer);
+
+                totalAllocated += bufferSize;
+
+                const currentTime = performance.now();
+                const deltaTime = (currentTime - lastTime) / 1000; // seconds
+                const currentRate = bufferSize / deltaTime; // Bytes/second
+
+                document.getElementById('size-info').textContent = `Size: ${(totalAllocated / (1024 * 1024)).toFixed(2)} MB`;
+                document.getElementById('rate-info').textContent = `Rate: ${(currentRate / (1024 * 1024)).toFixed(2)} MB/s`;
+
+                lastTime = currentTime;
+
+            } catch (e) {
+                console.error("Buffer allocation failed:", e);
+                showMessageBox(`Failed to allocate buffer: ${e.message}. Possible out of memory.`);
+                // Stop further allocations if an error occurs
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                }
+                document.getElementById('startButton').disabled = true; // Disable button on error
+                return;
+            }
+
+            // Render a small frame to ensure GPU is active
+            const commandEncoder = device.createCommandEncoder();
+            const passEncoder = commandEncoder.beginRenderPass({
+                colorAttachments: [{
+                    view: context.getCurrentTexture().createView(),
+                    loadOp: 'clear',
+                    clearValue: { r: Math.random(), g: Math.random(), b: Math.random(), a: 1.0 },
+                    storeOp: 'store',
+                }],
+            });
+            passEncoder.end();
+            device.queue.submit([commandEncoder.finish()]);
+
+            animationFrameId = requestAnimationFrame(allocateBuffer);
+        }
+
+        // Initialize WebGPU on page load
         window.onload = initWebGPU;
+
+        // Add event listener for the start button
+        document.getElementById('startButton').addEventListener('click', () => {
+            if (!allocationStarted && device && context && format) { // Ensure WebGPU is ready and allocation hasn't started
+                allocationStarted = true;
+                document.getElementById('startButton').disabled = true; // Disable button once started
+                // Start the allocation process after a short delay
+                setTimeout(() => {
+                    animationFrameId = requestAnimationFrame(allocateBuffer);
+                }, 500);
+            } else if (!device || !context || !format) {
+                showMessageBox("WebGPU is not yet initialized. Please wait or refresh.");
+            }
+        });
+
+        // Initially disable the button until WebGPU is ready
+        document.getElementById('startButton').disabled = true;
     </script>
 </body>
 </html>
