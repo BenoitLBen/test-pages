@@ -185,7 +185,7 @@
         }
 
         const bufferSize = 100 * 1024 * 1024; // 100 MB (must be a multiple of 4 for Uint32Array)
-        const maxAllocationGiB = 10; // Maximum allocation in GiB
+        const maxAllocationGiB = 16; // Maximum allocation in GiB
         const maxAllocationBytes = maxAllocationGiB * 1024 * 1024 * 1024; // 10 GiB in bytes
 
         let allocatedBuffers = []; // Array to hold all allocated buffers
