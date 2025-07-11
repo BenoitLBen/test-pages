@@ -40,6 +40,7 @@
             display: flex; /* Use flexbox for horizontal alignment */
             justify-content: center; /* Center buttons horizontally */
             gap: 15px; /* Space between buttons */
+            flex-wrap: wrap; /* Allow buttons to wrap onto the next line if space is limited */
         }
         #startButton, #stopButton {
             background-color: #28a745;
@@ -50,6 +51,7 @@
             cursor: pointer;
             font-size: 16px;
             transition: background-color 0.3s ease;
+            margin: 5px; /* Add some margin for better spacing when wrapped */
         }
         #startButton:hover {
             background-color: #218838;
