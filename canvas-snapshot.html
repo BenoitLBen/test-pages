@@ -60,27 +60,40 @@
         let animationFrameId; // To control the animation loop
         let snapshotIntervalId; // To control the snapshot interval
 
-        // Function to convert base64 string to Uint8Array
-        function base64ToUint8Array(base64) {
-            const raw = atob(base64);
-            const rawLength = raw.length;
-            const array = new Uint8Array(new ArrayBuffer(rawLength));
-            for (let i = 0; i < rawLength; i++) {
-                array[i] = raw.charCodeAt(i);
+        // Helper function to convert HSL to RGB
+        function hslToRgb(h, s, l) {
+            s /= 100;
+            l /= 100;
+            let c = (1 - Math.abs(2 * l - 1)) * s,
+                x = c * (1 - Math.abs((h / 60) % 2 - 1)),
+                m = l - c / 2,
+                r = 0,
+                g = 0,
+                b = 0;
+
+            if (0 <= h && h < 60) {
+                r = c; g = x; b = 0;
+            } else if (60 <= h && h < 120) {
+                r = x; g = c; b = 0;
+            } else if (120 <= h && h < 180) {
+                r = 0; g = c; b = x;
+            } else if (180 <= h && h < 240) {
+                r = 0; g = x; b = c;
+            } else if (240 <= h && h < 300) {
+                r = x; g = 0; b = c;
+            } else if (300 <= h && h < 360) {
+                r = c; g = 0; b = x;
             }
-            return array;
+            r = Math.round((r + m) * 255);
+            g = Math.round((g + m) * 255);
+            b = Math.round((b + m) * 255);
+
+            return [r, g, b];
         }
 
-        // Function to convert ArrayBuffer to hex string
-        function bufferToHex(buffer) {
-            return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
-        }
-
-        // Draws the Mandelbrot set on the canvas
-        function drawMandelbrot() {
-            // Get the image data for direct pixel manipulation
-            const imageData = ctx.createImageData(canvas.width, canvas.height);
-            const pixels = imageData.data;
+        // Generates the Mandelbrot pixel data into a Uint8ClampedArray (backed by an ArrayBuffer)
+        function generateMandelbrotBuffer() {
+            const buffer = new Uint8ClampedArray(canvas.width * canvas.height * 4); // R, G, B, A for each pixel
 
             for (let py = 0; py < canvas.height; py++) {
                 for (let px = 0; px < canvas.width; px++) {
@@ -111,16 +124,16 @@
                         numIterations++;
                     }
 
-                    // Determine pixel index in the image data array
+                    // Determine pixel index in the buffer array
                     const pixelIndex = (py * canvas.width + px) * 4;
 
                     // Color based on escape time (or black if it's in the set)
                     if (numIterations === MAX_ITERATIONS) {
                         // Point is likely in the set, color black
-                        pixels[pixelIndex] = 0;     // R
-                        pixels[pixelIndex + 1] = 0; // G
-                        pixels[pixelIndex + 2] = 0; // B
-                        pixels[pixelIndex + 3] = 255; // A (opaque)
+                        buffer[pixelIndex] = 0;     // R
+                        buffer[pixelIndex + 1] = 0; // G
+                        buffer[pixelIndex + 2] = 0; // B
+                        buffer[pixelIndex + 3] = 255; // A (opaque)
                     } else {
                         // Point escaped, color based on iteration count and color offset
                         // Using HSL to cycle colors smoothly
@@ -128,54 +141,47 @@
                         const saturation = 100; // Fixed saturation
                         const lightness = 50 + (numIterations / MAX_ITERATIONS * 40); // Vary lightness for more depth
 
-                        // Convert HSL to RGB
-                        // (Simplified HSL to RGB conversion for illustration)
-                        function hslToRgb(h, s, l) {
-                            s /= 100;
-                            l /= 100;
-                            let c = (1 - Math.abs(2 * l - 1)) * s,
-                                x = c * (1 - Math.abs((h / 60) % 2 - 1)),
-                                m = l - c / 2,
-                                r = 0,
-                                g = 0,
-                                b = 0;
-
-                            if (0 <= h && h < 60) {
-                                r = c; g = x; b = 0;
-                            } else if (60 <= h && h < 120) {
-                                r = x; g = c; b = 0;
-                            } else if (120 <= h && h < 180) {
-                                r = 0; g = c; b = x;
-                            } else if (180 <= h && h < 240) {
-                                r = 0; g = x; b = c;
-                            } else if (240 <= h && h < 300) {
-                                r = x; g = 0; b = c;
-                            } else if (300 <= h && h < 360) {
-                                r = c; g = 0; b = x;
-                            }
-                            r = Math.round((r + m) * 255);
-                            g = Math.round((g + m) * 255);
-                            b = Math.round((b + m) * 255);
-
-                            return [r, g, b];
-                        }
-
                         const [r, g, b] = hslToRgb(hue, saturation, lightness);
-                        pixels[pixelIndex] = r;
-                        pixels[pixelIndex + 1] = g;
-                        pixels[pixelIndex + 2] = b;
-                        pixels[pixelIndex + 3] = 255; // Opaque
+                        buffer[pixelIndex] = r;
+                        buffer[pixelIndex + 1] = g;
+                        buffer[pixelIndex + 2] = b;
+                        buffer[pixelIndex + 3] = 255; // Opaque
                     }
                 }
             }
+            return buffer; // Return the filled pixel buffer
+        }
+
+        // Uploads the pixel data from a Uint8ClampedArray to the canvas
+        function uploadBufferToCanvas(pixelBuffer) {
+            // Create an ImageData object from the pixel buffer
+            const imageData = new ImageData(pixelBuffer, canvas.width, canvas.height);
+            // Put the ImageData object onto the canvas
             ctx.putImageData(imageData, 0, 0);
         }
 
         // Animation loop to cycle colors
         function animate() {
             colorOffset = (colorOffset + 1) % 360; // Increment hue offset
-            drawMandelbrot();
+            const pixelBuffer = generateMandelbrotBuffer(); // Generate pixel data into the buffer
+            uploadBufferToCanvas(pixelBuffer); // Upload the buffer to the canvas
             animationFrameId = requestAnimationFrame(animate);
+        }
+
+        // Function to convert base64 string to Uint8Array
+        function base64ToUint8Array(base64) {
+            const raw = atob(base64);
+            const rawLength = raw.length;
+            const array = new Uint8Array(new ArrayBuffer(rawLength));
+            for (let i = 0; i < rawLength; i++) {
+                array[i] = raw.charCodeAt(i);
+            }
+            return array;
+        }
+
+        // Function to convert ArrayBuffer to hex string
+        function bufferToHex(buffer) {
+            return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
         }
 
         // Takes a PNG snapshot of the canvas and calculates its SHA256 hash
