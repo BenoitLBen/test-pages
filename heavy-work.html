@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Worker vs. Main Thread</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .spinner {
+            border: 8px solid #cbd5e1;
+            border-top: 8px solid #3b82f6;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4 text-gray-800">
+
+    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-2xl text-center">
+        <h1 class="text-3xl font-bold mb-4 text-gray-900">Web Worker vs. Main Thread</h1>
+        <p class="text-gray-600 mb-6">
+            Observe the spinning wheel below.
+            <br>
+            When the "Heavy Main Thread Task" is active, the wheel will stutter.
+            <br>
+            When the "Heavy Web Worker Task" is active, the wheel will spin smoothly.
+        </p>
+
+        <div class="flex flex-col items-center mb-6">
+            <div id="spinner" class="spinner mb-4"></div>
+            <p class="text-lg font-semibold text-gray-700">UI State: <span id="ui-state" class="font-normal text-green-600">Responsive</span></p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button id="main-thread-button" class="bg-red-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-red-600 transition-colors">
+                Start Heavy Main Thread Task
+            </button>
+            <button id="web-worker-button" class="bg-blue-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-600 transition-colors">
+                Start Heavy Web Worker Task
+            </button>
+        </div>
+
+        <div class="mt-8 p-4 bg-gray-100 rounded-lg text-left">
+            <h2 class="text-xl font-bold mb-2">Task Status:</h2>
+            <p id="main-thread-status" class="text-sm text-gray-700 mb-2">Main Thread Task: Idle</p>
+            <p id="web-worker-status" class="text-sm text-gray-700">Web Worker Task: Idle</p>
+        </div>
+    </div>
+
+    <script>
+        // The main thread's busy loop duration in milliseconds.
+        const BUSY_TIME_MS = 50;
+        let animationFrameId = null;
+        let worker = null;
+
+        const mainStatusEl = document.getElementById('main-thread-status');
+        const workerStatusEl = document.getElementById('web-worker-status');
+        const uiStateEl = document.getElementById('ui-state');
+        const mainButton = document.getElementById('main-thread-button');
+        const workerButton = document.getElementById('web-worker-button');
+
+        // Function to run a heavy computation on the main thread for a set duration.
+        function busyLoop() {
+            const start = performance.now();
+            while (performance.now() - start < BUSY_TIME_MS) {
+                // This is an intentional busy loop that blocks the main thread.
+            }
+        }
+
+        // The animation loop that updates the UI and runs the busy loop.
+        function animate() {
+            // This is where we update the UI, like the spinning wheel.
+            // The busyLoop() call will cause the entire page to freeze.
+            busyLoop();
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        // --- Web Worker Logic (defined as a Blob URL to keep it in one file) ---
+        const workerScript = `
+            // Sieve of Eratosthenes to find prime numbers up to a limit.
+            function findPrimes(limit) {
+                const isPrime = new Array(limit + 1).fill(true);
+                isPrime[0] = isPrime[1] = false;
+                for (let i = 2; i * i <= limit; i++) {
+                    if (isPrime[i]) {
+                        for (let j = i * i; j <= limit; j += i) {
+                            isPrime[j] = false;
+                        }
+                    }
+                }
+                const primes = [];
+                for (let i = 2; i <= limit; i++) {
+                    if (isPrime[i]) {
+                        primes.push(i);
+                    }
+                }
+                return primes;
+            }
+
+            // The main loop for the web worker.
+            function workerLoop() {
+                const limit = 5_000_000;
+                postMessage({ status: 'running', limit });
+                const primes = findPrimes(limit);
+                postMessage({ status: 'done', count: primes.length });
+                // Restart the task to simulate an endless, heavy computation.
+                workerLoop();
+            }
+
+            workerLoop();
+        `;
+
+        // Create the Web Worker from the inline script.
+        function startWebWorker() {
+            if (worker) return; // Prevent multiple workers
+            const blob = new Blob([workerScript], { type: 'application/javascript' });
+            worker = new Worker(URL.createObjectURL(blob));
+
+            worker.onmessage = (event) => {
+                const { status, count, limit } = event.data;
+                if (status === 'running') {
+                    workerStatusEl.textContent = 'Web Worker Task: Finding primes up to ' + limit.toLocaleString() + '...';
+                } else if (status === 'done') {
+                    workerStatusEl.textContent = 'Web Worker Task: Found ' + count.toLocaleString() + ' primes! Restarting...';
+                }
+            };
+
+            worker.onerror = (error) => {
+                workerStatusEl.textContent = 'Web Worker Task: Error! See console.';
+                console.error('Web Worker Error:', error);
+            };
+
+            workerButton.textContent = "Stop Web Worker Task";
+            workerButton.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+            workerButton.classList.add('bg-gray-400', 'hover:bg-gray-500');
+        }
+
+        function stopWebWorker() {
+            if (worker) {
+                worker.terminate();
+                worker = null;
+            }
+            workerStatusEl.textContent = 'Web Worker Task: Idle';
+            workerButton.textContent = "Start Heavy Web Worker Task";
+            workerButton.classList.remove('bg-gray-400', 'hover:bg-gray-500');
+            workerButton.classList.add('bg-blue-500', 'hover:bg-blue-600');
+        }
+
+        mainButton.addEventListener('click', () => {
+            if (mainButton.textContent.includes('Start')) {
+                mainButton.textContent = 'Stop Heavy Main Thread Task';
+                mainButton.classList.remove('bg-red-500', 'hover:bg-red-600');
+                mainButton.classList.add('bg-gray-400', 'hover:bg-gray-500');
+                uiStateEl.textContent = 'Blocked';
+                uiStateEl.classList.remove('text-green-600');
+                uiStateEl.classList.add('text-red-600');
+                mainStatusEl.textContent = 'Main Thread Task: Running a busy loop...';
+                animate();
+            } else {
+                mainButton.textContent = 'Start Heavy Main Thread Task';
+                mainButton.classList.remove('bg-gray-400', 'hover:bg-gray-500');
+                mainButton.classList.add('bg-red-500', 'hover:bg-red-600');
+                uiStateEl.textContent = 'Responsive';
+                uiStateEl.classList.remove('text-red-600');
+                uiStateEl.classList.add('text-green-600');
+                mainStatusEl.textContent = 'Main Thread Task: Idle';
+                cancelAnimationFrame(animationFrameId);
+            }
+        });
+
+        workerButton.addEventListener('click', () => {
+            if (workerButton.textContent.includes('Start')) {
+                startWebWorker();
+            } else {
+                stopWebWorker();
+            }
+        });
+
+    </script>
+</body>
+</html>
