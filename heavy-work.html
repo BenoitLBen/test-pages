@@ -112,8 +112,9 @@
             function workerLoop() {
                 const limit = 5_000_000;
                 postMessage({ status: 'running', limit });
-                const primes = findPrimes(limit);
+                let primes = findPrimes(limit);
                 postMessage({ status: 'done', count: primes.length });
+                primes = null;
                 // Restart the task to simulate an endless, heavy computation.
                 workerLoop();
             }
