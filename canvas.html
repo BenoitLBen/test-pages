@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perlin Noise Canvases</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c;
+        }
+        .container {
+            padding: 2rem;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(512px, 1fr));
+            gap: 1rem;
+            justify-items: center;
+        }
+        canvas {
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 10px 15px rgba(0, 0, 0, 0.1);
+            background-color: #2d3748;
+        }
+        h1, p {
+            text-align: center;
+            color: #e2e8f0;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+<div class="container mx-auto">
+    <h1 class="text-4xl font-bold mb-4 mt-8">Perlin Noise Canvases</h1>
+    <p class="text-lg mb-8">Each canvas below displays a unique Perlin noise pattern.</p>
+    
+    <div id="noiseGrid" class="grid-container">
+        <!-- Canvas elements will be generated here by JavaScript -->
+    </div>
+</div>
+
+<script>
+    // Perlin Noise implementation from https://m.blog.naver.com/PostView.naver?blogId=seongil1510&logNo=222880194819
+    // A simplified, self-contained Perlin noise algorithm
+    class PerlinNoise {
+        constructor(seed) {
+            this.seed = seed;
+            this.p = new Uint8Array(512);
+            this.perm = new Uint8Array(512);
+
+            let s = seed;
+            for (let i = 0; i < 256; i++) {
+                s = (s * 9301 + 49297) % 233280;
+                this.p[i] = s % 256;
+            }
+
+            for (let i = 0; i < 512; i++) {
+                this.perm[i] = this.p[i & 255];
+            }
+        }
+
+        fade(t) {
+            return t * t * t * (t * (t * 6 - 15) + 10);
+        }
+
+        lerp(t, a, b) {
+            return a + t * (b - a);
+        }
+
+        grad(hash, x, y, z) {
+            let h = hash & 15;
+            let u = h < 8 ? x : y,
+                v = h < 4 ? y : h == 12 || h == 14 ? x : z;
+            return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
+        }
+
+        noise(x, y, z) {
+            let X = Math.floor(x) & 255,
+                Y = Math.floor(y) & 255,
+                Z = Math.floor(z) & 255;
+
+            x -= Math.floor(x);
+            y -= Math.floor(y);
+            z -= Math.floor(z);
+
+            let u = this.fade(x),
+                v = this.fade(y),
+                w = this.fade(z);
+
+            let A = this.perm[X] + Y, AA = this.perm[A] + Z, AB = this.perm[A + 1] + Z;
+            let B = this.perm[X + 1] + Y, BA = this.perm[B] + Z, BB = this.perm[B + 1] + Z;
+
+            return this.lerp(w, this.lerp(v, this.lerp(u, this.grad(this.perm[AA], x, y, z),
+                                                      this.grad(this.perm[BA], x - 1, y, z)),
+                                          this.lerp(u, this.grad(this.perm[AB], x, y - 1, z),
+                                                      this.grad(this.perm[BB], x - 1, y - 1, z))),
+                              this.lerp(v, this.lerp(u, this.grad(this.perm[AA + 1], x, y, z - 1),
+                                                      this.grad(this.perm[BA + 1], x - 1, y, z - 1)),
+                                          this.lerp(u, this.grad(this.perm[AB + 1], x, y - 1, z - 1),
+                                                      this.grad(this.perm[BB + 1], x - 1, y - 1, z - 1))));
+        }
+    }
+
+    const CANVAS_COUNT = 10;
+    const CANVAS_SIZE = 512;
+    const FREQUENCY = 0.02;
+
+    function drawPerlinNoise(canvasId, seed) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) {
+            console.error(`Canvas with ID '${canvasId}' not found.`);
+            return;
+        }
+        const ctx = canvas.getContext('2d');
+        const noiseGen = new PerlinNoise(seed);
+        const imageData = ctx.createImageData(CANVAS_SIZE, CANVAS_SIZE);
+        const data = imageData.data;
+
+        for (let y = 0; y < CANVAS_SIZE; y++) {
+            for (let x = 0; x < CANVAS_SIZE; x++) {
+                const value = (noiseGen.noise(x * FREQUENCY, y * FREQUENCY, 0) + 1) / 2;
+                const grey = Math.floor(value * 255);
+                const index = (y * CANVAS_SIZE + x) * 4;
+                data[index] = grey;
+                data[index + 1] = grey;
+                data[index + 2] = grey;
+                data[index + 3] = 255;
+            }
+        }
+        ctx.putImageData(imageData, 0, 0);
+    }
+
+    window.onload = function() {
+        const noiseGrid = document.getElementById('noiseGrid');
+        for (let i = 0; i < CANVAS_COUNT; i++) {
+            const canvas = document.createElement('canvas');
+            canvas.id = `noiseCanvas${i}`;
+            canvas.width = CANVAS_SIZE;
+            canvas.height = CANVAS_SIZE;
+            noiseGrid.appendChild(canvas);
+
+            // Use a different seed for each canvas for a unique pattern
+            const seed = Math.random() * 256 | 0;
+            drawPerlinNoise(canvas.id, seed);
+        }
+    };
+</script>
+
+</body>
+</html>
