@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Perlin Noise Canvases</title>
+    <title>High-DPI Perlin Noise Canvases</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -12,18 +12,28 @@
             background-color: #1a202c;
         }
         .container {
-            padding: 2rem;
+            /* Responsive padding: more on large screens, less on small */
+            padding: 2rem; 
         }
         .grid-container {
+            /* The 'grid' display and 'gap' property inherently prevent item overlap. */
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(512px, 1fr));
-            gap: 1rem;
+            /* Creates as many columns as possible, each between 300px and 1 fraction unit wide */
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem; /* Increased gap slightly for better separation */
             justify-items: center;
         }
         canvas {
+            /* These styles define the *display* size in CSS pixels (DIPs) */
+            max-width: 512px;
+            max-height: 512px;
+            width: 100%; /* Ensure responsiveness within minmax bounds */
+            height: auto;
             border-radius: 1rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 10px 15px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
             background-color: #2d3748;
+            /* Added margin as an extra safety buffer against any potential collision */
+            margin: 0.5rem; 
         }
         h1, p {
             text-align: center;
@@ -33,18 +43,25 @@
 </head>
 <body class="bg-gray-900 text-gray-200">
 
-<div class="container mx-auto">
-    <h1 class="text-4xl font-bold mb-4 mt-8">Perlin Noise Canvases</h1>
-    <p class="text-lg mb-8">Each canvas below displays a unique Perlin noise pattern.</p>
+<div class="container mx-auto max-w-7xl">
+    <h1 class="text-4xl font-extrabold mb-4 mt-8 text-indigo-400">High-Resolution Perlin Noise</h1>
+    <p class="text-lg mb-8 text-gray-400">Generated on a scaled high-DPI canvas for maximum sharpness on modern screens.</p>
     
     <div id="noiseGrid" class="grid-container">
         <!-- Canvas elements will be generated here by JavaScript -->
     </div>
+    
+    <div id="loadingMessage" class="text-center text-xl my-10 text-indigo-300">
+        Generating 100 high-resolution noise patterns...
+    </div>
+
+    <footer class="text-center mt-12 py-4 text-gray-600 text-sm">
+        <p>Noise Algorithm by Ken Perlin, adapted for high-DPI rendering.</p>
+    </footer>
 </div>
 
 <script>
-    // Perlin Noise implementation from https://m.blog.naver.com/PostView.naver?blogId=seongil1510&logNo=222880194819
-    // A simplified, self-contained Perlin noise algorithm
+    // Perlin Noise implementation (simplified 3D noise)
     class PerlinNoise {
         constructor(seed) {
             this.seed = seed;
@@ -52,24 +69,29 @@
             this.perm = new Uint8Array(512);
 
             let s = seed;
+            // Simple LCG for initial permutation array generation
             for (let i = 0; i < 256; i++) {
                 s = (s * 9301 + 49297) % 233280;
                 this.p[i] = s % 256;
             }
 
+            // Duplicate the permutation table to avoid modulo operations later
             for (let i = 0; i < 512; i++) {
                 this.perm[i] = this.p[i & 255];
             }
         }
 
+        // 6t^5 - 15t^4 + 10t^3 smoothing curve
         fade(t) {
             return t * t * t * (t * (t * 6 - 15) + 10);
         }
 
+        // Linear interpolation
         lerp(t, a, b) {
             return a + t * (b - a);
         }
 
+        // Gradient vector generation and dot product
         grad(hash, x, y, z) {
             let h = hash & 15;
             let u = h < 8 ? x : y,
@@ -77,6 +99,7 @@
             return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
         }
 
+        // Main Perlin noise function
         noise(x, y, z) {
             let X = Math.floor(x) & 255,
                 Y = Math.floor(y) & 255,
@@ -94,58 +117,94 @@
             let B = this.perm[X + 1] + Y, BA = this.perm[B] + Z, BB = this.perm[B + 1] + Z;
 
             return this.lerp(w, this.lerp(v, this.lerp(u, this.grad(this.perm[AA], x, y, z),
-                                                      this.grad(this.perm[BA], x - 1, y, z)),
-                                          this.lerp(u, this.grad(this.perm[AB], x, y - 1, z),
-                                                      this.grad(this.perm[BB], x - 1, y - 1, z))),
-                              this.lerp(v, this.lerp(u, this.grad(this.perm[AA + 1], x, y, z - 1),
-                                                      this.grad(this.perm[BA + 1], x - 1, y, z - 1)),
-                                          this.lerp(u, this.grad(this.perm[AB + 1], x, y - 1, z - 1),
-                                                      this.grad(this.perm[BB + 1], x - 1, y - 1, z - 1))));
+                                                         this.grad(this.perm[BA], x - 1, y, z)),
+                                             this.lerp(u, this.grad(this.perm[AB], x, y - 1, z),
+                                                         this.grad(this.perm[BB], x - 1, y - 1, z))),
+                                 this.lerp(v, this.lerp(u, this.grad(this.perm[AA + 1], x, y, z - 1),
+                                                         this.grad(this.perm[BA + 1], x - 1, y, z - 1)),
+                                             this.lerp(u, this.grad(this.perm[AB + 1], x, y - 1, z - 1),
+                                                         this.grad(this.perm[BB + 1], x - 1, y - 1, z - 1))));
         }
     }
 
     const CANVAS_COUNT = 100;
-    const CANVAS_SIZE = 512;
+    const DISPLAY_SIZE = 512; // The desired size in CSS pixels (DIPs)
     const FREQUENCY = 0.02;
 
-    function drawPerlinNoise(canvasId, seed) {
+    /**
+     * Draws Perlin noise onto a canvas, adjusting for device pixel ratio.
+     * @param {string} canvasId - The ID of the canvas element.
+     * @param {number} seed - The seed for the noise generator.
+     * @param {number} ratio - The device pixel ratio.
+     */
+    function drawPerlinNoise(canvasId, seed, ratio) {
         const canvas = document.getElementById(canvasId);
         if (!canvas) {
             console.error(`Canvas with ID '${canvasId}' not found.`);
             return;
         }
         const ctx = canvas.getContext('2d');
+        
+        // The canvas width/height attributes are now set to DISPLAY_SIZE * ratio
+        const physicalSize = canvas.width;
+        
         const noiseGen = new PerlinNoise(seed);
-        const imageData = ctx.createImageData(CANVAS_SIZE, CANVAS_SIZE);
+        
+        // Create ImageData at the high physical resolution
+        const imageData = ctx.createImageData(physicalSize, physicalSize);
         const data = imageData.data;
 
-        for (let y = 0; y < CANVAS_SIZE; y++) {
-            for (let x = 0; x < CANVAS_SIZE; x++) {
-                const value = (noiseGen.noise(x * FREQUENCY, y * FREQUENCY, 0) + 1) / 2;
+        // Loop over every physical pixel
+        for (let y = 0; y < physicalSize; y++) {
+            for (let x = 0; x < physicalSize; x++) {
+                // Adjust the coordinates before passing to noise function.
+                // Dividing by 'ratio' maps the physical pixel back to the original logical (DIP) coordinate system.
+                const noiseX = (x / ratio) * FREQUENCY;
+                const noiseY = (y / ratio) * FREQUENCY;
+
+                // Noise values are between -1 and 1. Map to 0 to 1.
+                const value = (noiseGen.noise(noiseX, noiseY, 0) + 1) / 2;
                 const grey = Math.floor(value * 255);
-                const index = (y * CANVAS_SIZE + x) * 4;
+                
+                const index = (y * physicalSize + x) * 4;
+                
+                // Set RGB channels to the grayscale value
                 data[index] = grey;
                 data[index + 1] = grey;
                 data[index + 2] = grey;
-                data[index + 3] = 255;
+                data[index + 3] = 255; // Alpha channel (opaque)
             }
         }
+        
+        // Put the high-resolution image data onto the high-resolution buffer
         ctx.putImageData(imageData, 0, 0);
     }
 
     window.onload = function() {
         const noiseGrid = document.getElementById('noiseGrid');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const ratio = window.devicePixelRatio || 1; // Get the device pixel ratio (e.g., 2 for Retina)
+
         for (let i = 0; i < CANVAS_COUNT; i++) {
             const canvas = document.createElement('canvas');
             canvas.id = `noiseCanvas${i}`;
-            canvas.width = CANVAS_SIZE;
-            canvas.height = CANVAS_SIZE;
+            
+            // 1. Set the internal drawing buffer to the high resolution
+            canvas.width = DISPLAY_SIZE * ratio;
+            canvas.height = DISPLAY_SIZE * ratio;
+
+            // 2. Set the CSS display size to the desired DIP size
+            canvas.style.width = `${DISPLAY_SIZE}px`;
+            canvas.style.height = `${DISPLAY_SIZE}px`;
+
             noiseGrid.appendChild(canvas);
 
             // Use a different seed for each canvas for a unique pattern
-            const seed = Math.random() * 256 | 0;
-            drawPerlinNoise(canvas.id, seed);
+            const seed = (Math.random() * 256 | 0) + (i * 100);
+            drawPerlinNoise(canvas.id, seed, ratio);
         }
+
+        loadingMessage.remove(); // Hide the loading message once all canvases are drawn
     };
 </script>
 
