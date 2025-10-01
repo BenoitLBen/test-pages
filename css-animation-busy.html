@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fading Header</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom CSS for the fading animation */
+        @keyframes fade {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .header-fade {
+            animation: fade 2.5s infinite ease-in-out;
+        }
+
+        /* Set a top padding on the body to prevent content from being hidden by the fixed header */
+        body {
+            padding-top: 80px; /* Should be roughly the height of the header */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <!-- Fixed Header --><header class="bg-blue-500 text-white p-4 shadow-lg fixed top-0 left-0 right-0 z-10 header-fade">
+        <div class="container mx-auto">
+            <h1 class="text-2xl font-bold text-center">Fading Header</h1>
+        </div>
+    </header>
+
+    <!-- Main Content --><main class="container mx-auto p-6 bg-white rounded-lg shadow-md">
+        <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6" role="alert">
+          <p class="font-bold">Notice</p>
+          <p>This page now includes a script that intentionally freezes the browser for 500ms every 1.5 seconds. Observe how the header animation stutters. This demonstrates the effect of a "busy loop" blocking the main thread.</p>
+        </div>
+        <p class="mb-4 text-gray-700">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+        </p>
+        <p class="mb-4 text-gray-700">
+            Phasellus egestas tellus rutrum tellus pellentesque eu. Sit amet consectetur adipiscing elit duis tristique. Sagittis nisl rhoncus mattis rhoncus urna neque viverra. Amet justo donec enim diam vulputate ut pharetra. Nunc sed velit dignissim sodales ut eu sem. Eget aliquet nibh praesent tristique magna sit. In ornare quam viverra orci sagittis eu volutpat.
+        </p>
+        <p class="mb-4 text-gray-700">
+            Vulputate dignissim suspendisse in est. Et netus et malesuada fames ac turpis. Eu sem integer vitae justo eget magna fermentum iaculis eu. Amet consectetur adipiscing elit pellentesque habitant morbi tristique. Erat velit scelerisque in dictum non consectetur a. Lectus vestibulum mattis ullamcorper velit sed ullamcorper morbi tincidunt.
+        </p>
+        <p class="mb-4 text-gray-700">
+            Mi proin sed libero enim sed. Velit euismod in pellentesque massa placerat. Nunc sed id semper risus in hendrerit. In est ante in nibh mauris cursus mattis molestie. Quis commodo odio aenean sed adipiscing. Eu feugiat pretium nibh ipsum consequat nisl vel pretium. Gravida in fermentum et sollicitudin ac orci.
+        </p>
+        <p class="mb-4 text-gray-700">
+            Amet dictum sit amet justo donec enim diam vulputate. Massa tincidunt dui ut ornare lectus sit amet. Vitae aliquet nec ullamcorper sit amet risus nullam. Ultrices in iaculis nunc sed augue. Tellus in metus vulputate eu scelerisque felis imperdiet. At tellus at urna condimentum mattis pellentesque id.
+        </p>
+        <p class="mb-4 text-gray-700">
+            Congue eu consequat ac felis donec et odio. Mattis nunc sed blandit libero volutpat sed cras. Dictum non consectetur a erat nam at lectus. Mauris vitae ultricies leo integer malesuada nunc vel. Nisl tincidunt eget nullam non. Facilisis magna etiam tempor orci eu lobortis elementum.
+        </p>
+        <p class="mb-4 text-gray-700">
+            Augue lacus viverra vitae congue eu consequat ac. Faucibus purus in massa tempor nec. Orci eu lobortis elementum nibh tellus molestie nunc. Viverra accan in nisl nisi scelerisque eu. Scelerisque in dictum non consectetur a erat. Ultrices sagittis orci a scelerisque purus.
+        </p>
+        <p class="mb-4 text-gray-700">
+            Iaculis eu non diam phasellus vestibulum lorem. Aliquet bibendum enim facilisis gravida neque convallis. Id aliquet risus feugiat in ante metus dictum at. Arcu cursus vitae congue mauris rhoncus. Faucibus nisl tincidunt eget nullam non nisi est. Nibh praesent tristique magna sit amet purus.
+        </p>
+        <p class="mb-4 text-gray-700">
+            Diam in arcu cursus euismod quis viverra nibh. Porttitor rhoncus dolor purus non enim. Sed nisi lacus sed viverra tellus in hac habitasse platea. Nunc mi ipsum faucibus vitae aliquet nec ullamcorper. Vitae purus faucibus ornare suspendisse sed nisi lacus. Integer vitae justo eget magna fermentum iaculis eu.
+        </p>
+        <p class="mb-4 text-gray-700">
+            Tortor at risus viverra adipiscing at. Felis eget nunc lobortis mattis. Tincidunt arcu non sodales neque sodales ut etiam sit. Amet est placerat in egestas erat imperdiet sed. Sit amet consectetur adipiscing elit pellentesque habitant morbi. Orci a scelerisque purus semper eget duis at.
+        </p>
+    </main>
+
+    <script>
+        // This function creates a "busy loop" that blocks the main thread.
+        function busyLoop(duration) {
+            const startTime = Date.now();
+            // Loop continuously until the specified duration has passed.
+            while (Date.now() - startTime < duration) {
+                // This loop consumes CPU cycles and prevents the browser
+                // from doing anything else, like rendering CSS animations.
+            }
+        }
+
+        // Run the busy loop for 500ms every 1500ms (1.5 seconds).
+        setInterval(() => {
+            console.log("Starting 500ms busy loop...");
+            busyLoop(500);
+            console.log("...loop finished.");
+        }, 100);
+    </script>
+
+</body>
+</html>
+
