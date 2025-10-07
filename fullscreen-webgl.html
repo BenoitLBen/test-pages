@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGL Spinning Cube</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- three.js for WebGL -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <style>
+        /* A simple style to make the canvas responsive within its container */
+        #webgl-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 flex flex-col items-center justify-center min-h-screen font-sans p-4">
+
+    <!-- Container for the canvas to manage its initial size and aspect ratio -->
+    <div id="canvas-container" class="relative w-full max-w-xl aspect-square rounded-xl overflow-hidden shadow-2xl bg-gray-800">
+        <canvas id="webgl-canvas"></canvas>
+    </div>
+
+    <!-- Fullscreen Button -->
+    <button id="fullscreen-btn" class="mt-8 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+        Go Fullscreen
+    </button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Get HTML Elements ---
+            const canvas = document.getElementById('webgl-canvas');
+            const fullscreenBtn = document.getElementById('fullscreen-btn');
+            const canvasContainer = document.getElementById('canvas-container');
+
+            // --- Three.js Scene Setup ---
+            let scene, camera, renderer, cube;
+
+            function init() {
+                // 1. Scene: This is the container for all our 3D objects.
+                scene = new THREE.Scene();
+
+                // 2. Camera: This is what we'll see the scene through.
+                // PerspectiveCamera(field of view, aspect ratio, near clipping plane, far clipping plane)
+                camera = new THREE.PerspectiveCamera(75, canvasContainer.clientWidth / canvasContainer.clientHeight, 0.1, 1000);
+                camera.position.z = 5; // Move the camera back so we can see the cube
+
+                // 3. Renderer: This does the magic of drawing the scene onto the canvas.
+                renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+                renderer.setSize(canvasContainer.clientWidth, canvasContainer.clientHeight);
+                renderer.setPixelRatio(window.devicePixelRatio); // For crisp visuals on high-res screens
+
+                // 4. Geometry & Material: Create the shape and look of our cube.
+                const geometry = new THREE.BoxGeometry(2, 2, 2);
+                // MeshNormalMaterial colors faces based on their orientation, which creates a nice rainbow effect.
+                const material = new THREE.MeshNormalMaterial();
+                
+                // 5. Mesh: Combine the geometry and material into a single object.
+                cube = new THREE.Mesh(geometry, material);
+
+                // 6. Add the cube to the scene
+                scene.add(cube);
+
+                // 7. Start the animation loop
+                animate();
+            }
+
+            // --- Animation Loop ---
+            // This function is called on every frame to create the spinning motion.
+            function animate() {
+                requestAnimationFrame(animate);
+
+                // Rotate the cube on its X and Y axes
+                cube.rotation.x += 0.005;
+                cube.rotation.y += 0.005;
+
+                // Render the scene from the camera's perspective
+                renderer.render(scene, camera);
+            }
+
+            // --- Event Handlers ---
+
+            // Fullscreen Button Click Handler
+            fullscreenBtn.addEventListener('click', () => {
+                // Check if not already in fullscreen, then request it on the container
+                if (!document.fullscreenElement) {
+                     if (canvasContainer.requestFullscreen) {
+                        canvasContainer.requestFullscreen();
+                    } else if (canvasContainer.mozRequestFullScreen) { // Firefox
+                        canvasContainer.mozRequestFullScreen();
+                    } else if (canvasContainer.webkitRequestFullscreen) { // Chrome, Safari, Opera
+                        canvasContainer.webkitRequestFullscreen();
+                    } else if (canvasContainer.msRequestFullscreen) { // IE/Edge
+                        canvasContainer.msRequestFullscreen();
+                    }
+                } else {
+                    // If already fullscreen, exit
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    }
+                }
+            });
+
+            // This event fires when the browser enters or exits fullscreen mode (e.g., by pressing Esc).
+            document.addEventListener('fullscreenchange', () => {
+                const isFullscreen = !!document.fullscreenElement;
+                fullscreenBtn.textContent = isFullscreen ? 'Exit Fullscreen' : 'Go Fullscreen';
+                 // A short delay is needed for the container to resize before we update the canvas
+                setTimeout(onWindowResize, 100);
+            });
+
+            // Window Resize Handler
+            // This ensures the scene doesn't get distorted when the window is resized.
+            function onWindowResize() {
+                const width = canvasContainer.clientWidth;
+                const height = canvasContainer.clientHeight;
+                
+                // Update camera's aspect ratio
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+
+                // Update renderer's size
+                renderer.setSize(width, height);
+            }
+            window.addEventListener('resize', onWindowResize, false);
+
+            // --- Start Everything ---
+            init();
+        });
+    </script>
+
+</body>
+</html>
+
+
