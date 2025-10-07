@@ -25,6 +25,8 @@
     <!-- Container for the canvas to manage its initial size and aspect ratio -->
     <div id="canvas-container" class="relative w-full max-w-xl aspect-square rounded-xl overflow-hidden shadow-2xl bg-gray-800">
         <canvas id="webgl-canvas"></canvas>
+        <!-- FPS Counter -->
+        <div id="fps-counter" class="absolute top-2 left-2 bg-black bg-opacity-50 text-white font-mono text-sm p-1 rounded">-- FPS</div>
     </div>
 
     <!-- Fullscreen Button -->
@@ -38,6 +40,7 @@
             const canvas = document.getElementById('webgl-canvas');
             const fullscreenBtn = document.getElementById('fullscreen-btn');
             const canvasContainer = document.getElementById('canvas-container');
+            const fpsCounter = document.getElementById('fps-counter');
 
             // --- Three.js Scene Setup ---
             let scene, camera, renderer, cube;
@@ -72,9 +75,20 @@
             }
 
             // --- Animation Loop ---
+            let lastTime = performance.now();
+            let frames = 0;
             // This function is called on every frame to create the spinning motion.
             function animate() {
                 requestAnimationFrame(animate);
+
+                // FPS Calculation
+                const time = performance.now();
+                frames++;
+                if (time >= lastTime + 1000) {
+                    fpsCounter.textContent = `${frames} FPS`;
+                    lastTime = time;
+                    frames = 0;
+                }
 
                 // Rotate the cube on its X and Y axes
                 cube.rotation.x += 0.005;
@@ -137,5 +151,6 @@
 
 </body>
 </html>
+
 
 
