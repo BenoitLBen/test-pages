@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vertical Boxes with YouTube Video</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for Inter font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 py-10">
+
+    <!-- Main container to center the content -->
+    <div class="flex flex-col items-center w-full px-4">
+
+        <!-- Title -->
+        <h1 class="text-3xl font-bold mb-8 text-center">Vertical Content Feed</h1>
+
+        <!-- Container for first 15 boxes -->
+        <div id="box-container-1" class="flex flex-col items-center w-full"></div>
+
+        <!-- YouTube Video Embed -->
+        <!-- This is placed in the middle, after the 15th box -->
+        <div class="w-full max-w-[500px] aspect-video mb-6 rounded-lg shadow-xl overflow-hidden border border-black dark:border-gray-700">
+            <iframe
+                class="w-full h-full"
+                src="https://www.youtube.com/embed/aqz-KE-bpKQ"
+                title="Big Buck Bunny"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen
+            ></iframe>
+        </div>
+
+        <!-- Container for remaining 15 boxes -->
+        <div id="box-container-2" class="flex flex-col items-center w-full"></div>
+
+    </div> <!-- End of main container -->
+
+    <script>
+        // Use DOMContentLoaded to ensure the page structure is ready
+        document.addEventListener('DOMContentLoaded', (event) => {
+            const container1 = document.getElementById('box-container-1');
+            const container2 = document.getElementById('box-container-2');
+
+            // Function to create a box element
+            function createBox(index) {
+                return `
+                    <div class="w-full max-w-[500px] h-[500px] bg-white dark:bg-gray-800 border border-black dark:border-gray-700 rounded-lg shadow-xl mb-6 flex items-center justify-center">
+                        <span class="text-gray-400 text-lg">Box ${index}</span>
+                    </div>
+                `;
+            }
+
+            // Generate first 15 boxes
+            let boxes1 = '';
+            for (let i = 1; i <= 15; i++) {
+                boxes1 += createBox(i);
+            }
+            if (container1) container1.innerHTML = boxes1;
+
+            // Generate remaining 15 boxes
+            let boxes2 = '';
+            for (let i = 16; i <= 30; i++) {
+                boxes2 += createBox(i);
+            }
+            if (container2) container2.innerHTML = boxes2;
+        });
+    </script>
+
+</body>
+</html>
+
