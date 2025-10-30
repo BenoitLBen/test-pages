@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Three.js InstancedMesh Performance (100k)</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+		<style>
+			body {
+				margin: 0;
+				background-color: #111;
+				color: #fff;
+				font-family: Monospace;
+				font-size: 13px;
+				line-height: 24px;
+				overscroll-behavior: none;
+			}
+			canvas {
+				display: block;
+			}
+			a {
+				color: #ff0;
+				text-decoration: none;
+			}
+			a:hover {
+				text-decoration: underline;
+			}
+			button {
+				cursor: pointer;
+				background: transparent;
+				border: 1px solid #ff0;
+				border-radius: 5px;
+				color: #ff0;
+				padding: 5px 10px;
+			}
+			button:hover {
+				background: #ff0;
+				color: #000;
+			}
+		</style>
+	</head>
+
+	<body>
+
+		<!-- Import maps polyfill -->
+		<!-- Remove this when import maps are supported in all major browsers -->
+		<script async src="https://unpkg.com/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
+
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "https://cdn.jsdelivr.net/npm/three@0.167.0/build/three.module.js",
+					"three/addons/": "https://cdn.jsdelivr.net/npm/three@0.167.0/examples/jsm/"
+				}
+			}
+		</script>
+
+		<script type="module">
+
+			import * as THREE from 'three';
+			import Stats from 'three/addons/libs/stats.module.js';
+			import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+
+			let camera, scene, renderer, stats;
+			let mesh; // This will be our InstancedMesh
+			let dummy; // Helper object for matrix calculations
+
+			// Arrays to store unique animation offsets for each instance
+			let positionOffsets;
+			let rotationOffsets;
+            let scaleOffsets;
+
+			// GUI parameters
+			const params = {
+				count: 100_000
+			};
+
+			init();
+			animate();
+
+			function init() {
+
+				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 1000 );
+				// Pull the camera back to see all 100k objects
+				camera.position.z = 400;
+
+				scene = new THREE.Scene();
+				scene.background = new THREE.Color( 0x101010 );
+				
+				// Helper object
+				dummy = new THREE.Object3D();
+
+				// Initial mesh setup
+				initMesh( params.count );
+				
+				// Renderer
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				document.body.appendChild( renderer.domElement );
+
+				// Stats
+				stats = new Stats();
+				document.body.appendChild( stats.dom );
+
+				// GUI
+				const gui = new GUI();
+				// Add a slider to change the count, stepping by 100 for sanity
+				gui.add( params, 'count', 0, 100_000 ).step( 100 ).onChange( initMesh );
+
+				// Resize listener
+				window.addEventListener( 'resize', onWindowResize );
+
+			}
+
+			/**
+			 * Disposes of the old mesh and creates a new InstancedMesh
+			 * with the specified count.
+			 */
+			function initMesh( count ) {
+
+				// --- 1. Clean up old mesh ---
+				if ( mesh ) {
+					// Remove from scene
+					scene.remove( mesh );
+					
+					// Dispose geometry and material to free up GPU memory
+					mesh.geometry.dispose();
+					mesh.material.dispose();
+				}
+
+				// Update parameter
+				params.count = count;
+
+				// --- 2. Create new mesh ---
+				// Define a simple geometry and material
+				const geometry = new THREE.IcosahedronGeometry( 0.5, 1 ); // (radius, detail)
+				const material = new THREE.MeshNormalMaterial();
+				
+				mesh = new THREE.InstancedMesh( geometry, material, count );
+				// This usage flag is important for performance when matrices update every frame
+				mesh.instanceMatrix.setUsage( THREE.DynamicDrawUsage ); 
+
+				// --- 3. Create new animation data arrays ---
+				positionOffsets = new Float32Array( count * 3 );
+				rotationOffsets = new Float32Array( count * 3 );
+                scaleOffsets = new Float32Array( count );
+
+				const spread = 150; // How far the objects are spread out
+
+				for ( let i = 0; i < count; i++ ) {
+
+					// Store a random initial position offset
+					positionOffsets[ i * 3 + 0 ] = ( Math.random() - 0.5 ) * spread;
+					positionOffsets[ i * 3 + 1 ] = ( Math.random() - 0.5 ) * spread;
+					positionOffsets[ i * 3 + 2 ] = ( Math.random() - 0.5 ) * spread;
+
+					// Store a random rotation speed/offset
+					rotationOffsets[ i * 3 + 0 ] = Math.random() * 2;
+					rotationOffsets[ i * 3 + 1 ] = Math.random() * 2;
+					rotationOffsets[ i * 3 + 2 ] = Math.random() * 2;
+
+                    // Store a random scale
+                    scaleOffsets[ i ] = 0.5 + Math.random() * 1.0;
+				}
+				
+				// Add the new mesh to the scene
+				scene.add( mesh );
+			}
+
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+
+				stats.begin();
+
+				const time = Date.now() * 0.0005; // Slower time for smoother animation
+
+				if ( mesh ) {
+					
+					// This is where the magic happens
+					// We loop through every instance and update its matrix
+					for ( let i = 0; i < mesh.count; i++ ) {
+						
+						// --- Update position ---
+						// Start from the unique initial offset
+						// Add a circular motion based on time and another offset
+						dummy.position.x = positionOffsets[ i * 3 + 0 ] + 20 * Math.cos( time + rotationOffsets[ i * 3 + 0 ] );
+						dummy.position.y = positionOffsets[ i * 3 + 1 ] + 20 * Math.sin( time + rotationOffsets[ i * 3 + 1 ] );
+						dummy.position.z = positionOffsets[ i * 3 + 2 ] + 20 * Math.sin( time + rotationOffsets[ i * 3 + 2 ] );
+
+						// --- Update rotation ---
+						// Rotate based on time and the unique rotation speed
+						dummy.rotation.x = time * rotationOffsets[ i * 3 + 0 ];
+						dummy.rotation.y = time * rotationOffsets[ i * 3 + 1 ];
+						dummy.rotation.z = time * rotationOffsets[ i * 3 + 2 ];
+
+                        // --- Update scale ---
+                        const s = scaleOffsets[i];
+                        dummy.scale.set(s, s, s);
+
+						// Apply transformations to the dummy object
+						dummy.updateMatrix();
+
+						// Set the instance's matrix from the dummy's matrix
+						mesh.setMatrixAt( i, dummy.matrix );
+
+					}
+
+					// Tell three.js that the instance matrix has changed.
+					// This is CRITICAL for the changes to appear.
+					mesh.instanceMatrix.needsUpdate = true;
+
+				}
+				
+				renderer.render( scene, camera );
+
+				stats.end();
+
+			}
+
+		</script>
+	</body>
+</html>
