@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stacked CSS Boxes with Iframe</title>
+    <!-- Load Tailwind CSS via CDN for quick styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styling for the embedded content frame */
+        .iframe-container {
+            border: 4px solid #10b981; /* Emerald 500 border */
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            overflow: hidden; /* Ensure content stays within border radius */
+        }
+        .box {
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+            /* Added a subtle background pattern for variety in the new boxes */
+            background-image: linear-gradient(135deg, #e0e7ff 25%, transparent 25%, transparent 50%, #e0e7ff 50%, #e0e7ff 75%, transparent 75%, transparent);
+            background-size: 20px 20px;
+        }
+        .box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.1);
+        }
+        /* Ensure the iframe scales well on smaller screens */
+        @media (max-width: 640px) {
+            .iframe-container {
+                height: 300px; /* Smaller height on mobile */
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 flex justify-center py-12 px-4 font-sans">
+
+    <div class="w-full max-w-2xl space-y-8">
+        <h1 class="text-3xl font-extrabold text-center text-gray-800">Vertical Stacked Layout (Scroll to See Iframe)</h1>
+        <p class="text-center text-gray-600">We've added many boxes to ensure you have to scroll down to find the embedded iframe.</p>
+
+        <!-- New Box 1 -->
+        <div class="box bg-indigo-100 border-2 border-indigo-400 p-6 h-32 flex items-center justify-center rounded-xl shadow-lg">
+            <p class="text-lg font-semibold text-indigo-800">Box 1: Start of Stack</p>
+        </div>
+
+        <!-- New Box 2 -->
+        <div class="box bg-indigo-100 border-2 border-indigo-400 p-6 h-32 flex items-center justify-center rounded-xl shadow-lg">
+            <p class="text-lg font-semibold text-indigo-800">Box 2: Getting Lower</p>
+        </div>
+
+        <!-- New Box 3 -->
+        <div class="box bg-indigo-100 border-2 border-indigo-400 p-6 h-32 flex items-center justify-center rounded-xl shadow-lg">
+            <p class="text-lg font-semibold text-indigo-800">Box 3: Mid-way to Iframe</p>
+        </div>
+
+        <!-- New Box 4 -->
+        <div class="box bg-indigo-100 border-2 border-indigo-400 p-6 h-32 flex items-center justify-center rounded-xl shadow-lg">
+            <p class="text-lg font-semibold text-indigo-800">Box 4: Scroll is Required Now</p>
+        </div>
+        
+        <!-- New Box 5 -->
+        <div class="box bg-indigo-100 border-2 border-indigo-400 p-6 h-32 flex items-center justify-center rounded-xl shadow-lg">
+            <p class="text-lg font-semibold text-indigo-800">Box 5: Almost There</p>
+        </div>
+
+        <!-- New Box 6 -->
+        <div class="box bg-indigo-100 border-2 border-indigo-400 p-6 h-32 flex items-center justify-center rounded-xl shadow-lg">
+            <p class="text-lg font-semibold text-indigo-800">Box 6: Just Before the Iframe</p>
+        </div>
+
+        <!-- Original Box 1 (Now Box 7) -->
+        <div class="box bg-indigo-100 border-2 border-indigo-400 p-6 h-32 flex items-center justify-center rounded-xl shadow-lg">
+            <p class="text-lg font-semibold text-indigo-800">Box 7: Content Above Iframe</p>
+        </div>
+
+        <!-- Original Box 2 (Now Box 8) -->
+        <div class="box bg-indigo-100 border-2 border-indigo-400 p-6 h-32 flex items-center justify-center rounded-xl shadow-lg">
+            <p class="text-lg font-semibold text-indigo-800">Box 8: More Content Above Iframe</p>
+        </div>
+
+        <!-- The Iframe in the Middle -->
+        <div class="iframe-container w-full h-96 bg-white p-2">
+            <!-- The requested external content is embedded here -->
+            <iframe
+                src="https://benoitlben.github.io/test-pages/spinning-wheel.html"
+                title="Embedded Spinning Wheel Demo"
+                class="w-full h-full rounded-md"
+                frameborder="0"
+                allowfullscreen>
+                <!-- Fallback content if the browser doesn't support iframes -->
+                Your browser does not support iframes. You can visit the content directly at <a href="https://benoitlben.github.io/test-pages/spinning-wheel.html" target="_blank">this link</a>.
+            </iframe>
+        </div>
+
+        <div class="text-center text-sm text-gray-500">
+            --- Iframe Separator ---
+        </div>
+
+        <!-- Original Box 3 (Now Box 9) -->
+        <div class="box bg-indigo-100 border-2 border-indigo-400 p-6 h-32 flex items-center justify-center rounded-xl shadow-lg">
+            <p class="text-lg font-semibold text-indigo-800">Box 9: Content Below Iframe</p>
+        </div>
+
+        <!-- Original Box 4 (Now Box 10) -->
+        <div class="box bg-indigo-100 border-2 border-indigo-400 p-6 h-32 flex items-center justify-center rounded-xl shadow-lg">
+            <p class="text-lg font-semibold text-indigo-800">Box 10: Last Content Box</p>
+        </div>
+
+    </div>
+
+</body>
+</html>
