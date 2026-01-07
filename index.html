@@ -5,8 +5,6 @@ title: File Directory
 
 <ul>
   {% for file in site.static_files %}
-    {% if file.path contains "/your-directory-name/" %}
-      <li><a href="{{ file.path | relative_url }}">{{ file.name }}</a></li>
-    {% endif %}
+    <li><a href="{{ file.path | relative_url }}">{{ file.name }}</a></li>
   {% endfor %}
 </ul>
