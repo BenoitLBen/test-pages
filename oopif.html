@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Embedded Content Feed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #f3f4f6;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        .feed-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        .content-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            margin-bottom: 2.5rem;
+            overflow: hidden;
+        }
+        .iframe-container {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+            background: #e5e7eb;
+        }
+        .iframe-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+        /* Empty box styling */
+        .empty-box {
+            width: 100%;
+            height: 400px;
+            background: #ffffff;
+            border: 2px dashed #d1d5db;
+            border-radius: 12px;
+            margin-bottom: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+        }
+        .card-info {
+            padding: 1.25rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="bg-white border-b sticky top-0 z-10 py-4 shadow-sm">
+        <div class="max-w-[800px] mx-auto px-4 flex items-center justify-between">
+            <h1 class="text-xl font-bold text-gray-800">Content Feed Layout</h1>
+            <span class="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-medium">Extended Centered Embed</span>
+        </div>
+    </header>
+
+    <main class="feed-container">
+        <!-- Empty Boxes ABOVE the embed -->
+        <div class="empty-box">
+            <span>Empty Content Block #1</span>
+        </div>
+
+        <div class="empty-box">
+            <span>Empty Content Block #2</span>
+        </div>
+
+        <div class="empty-box">
+            <span>Empty Content Block #3</span>
+        </div>
+
+        <div class="empty-box">
+            <span>Empty Content Block #4</span>
+        </div>
+
+        <div class="empty-box">
+            <span>Empty Content Block #5</span>
+        </div>
+
+        <!-- The Single Iframe Embed (Middle) -->
+        <article class="content-card">
+            <div class="card-info">
+                <h2 class="text-lg font-semibold text-gray-900 mb-1">Active Embed: Example.com</h2>
+                <p class="text-sm text-gray-500">This embed is now positioned between the placeholder blocks.</p>
+            </div>
+            <div class="iframe-container">
+                <iframe 
+                    src="https://example.com" 
+                    title="Example Domain"
+                    loading="lazy">
+                </iframe>
+            </div>
+        </article>
+
+        <!-- Empty Boxes BELOW the embed -->
+        <div class="empty-box">
+            <span>Empty Content Block #6</span>
+        </div>
+
+        <div class="empty-box">
+            <span>Empty Content Block #7</span>
+        </div>
+
+        <div class="empty-box">
+            <span>Empty Content Block #8</span>
+        </div>
+
+        <div class="empty-box">
+            <span>Empty Content Block #9</span>
+        </div>
+
+        <div class="empty-box">
+            <span>Empty Content Block #10</span>
+        </div>
+
+        <footer class="text-center text-gray-400 text-sm mt-8 pb-12">
+            <p>End of layout demo.</p>
+        </footer>
+    </main>
+
+</body>
+</html>
