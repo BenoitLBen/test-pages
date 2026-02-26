@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High-Resolution GIF Viewer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loader {
+            border-top-color: #3498db;
+            animation: spinner 1.5s linear infinite;
+        }
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Prevents layout shift once the image loads */
+        .img-container {
+            aspect-ratio: 16 / 9;
+            background-color: #1a1a1a;
+        }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col font-sans">
+
+    <!-- Header -->
+    <header class="p-6 border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-md sticky top-0 z-10">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-xl font-bold tracking-tight">High-Res Asset Preview</h1>
+                <p class="text-sm text-zinc-400 font-mono">Source: GitHub Releases CDN</p>
+            </div>
+            <a href="https://github.com/BenoitLBen/test-pages/releases/tag/large-gif" 
+               target="_blank"
+               class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm transition-colors border border-zinc-700">
+                View Repository
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow flex items-center justify-center p-4">
+        <div class="w-full max-w-6xl">
+            
+            <!-- Asset Wrapper -->
+            <div id="media-container" class="relative img-container rounded-2xl overflow-hidden shadow-2xl border border-zinc-800 flex items-center justify-center">
+                
+                <!-- Loading State -->
+                <div id="loading-overlay" class="absolute inset-0 z-20 bg-zinc-900 flex flex-col items-center justify-center transition-opacity duration-500">
+                    <div class="loader ease-linear rounded-full border-4 border-t-4 border-zinc-800 h-12 w-12 mb-4"></div>
+                    <p class="text-zinc-400 animate-pulse font-medium">Downloading 50 MiB Buffer...</p>
+                    <p class="text-xs text-zinc-500 mt-2 italic">High-resolution assets may take a moment on slower connections</p>
+                </div>
+
+                <!-- The GIF Asset -->
+                <img 
+                    id="large-gif"
+                    src="https://github.com/BenoitLBen/test-pages/releases/download/large-gif/gemini_generated_video_f715f4ab.gif" 
+                    alt="High resolution animation"
+                    class="w-full h-full object-contain opacity-0 transition-opacity duration-700 z-10"
+                    onload="handleImageLoad()"
+                    onerror="handleImageError()"
+                />
+            </div>
+
+            <!-- Metadata Info (For Software Engineers) -->
+            <section class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-zinc-900/40 p-4 rounded-xl border border-zinc-800">
+                    <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Payload Details</h3>
+                    <p class="text-sm">File Size: <span class="text-blue-400 font-mono">~50.2 MiB</span></p>
+                    <p class="text-sm">Format: <span class="text-blue-400 font-mono">GIF89a</span></p>
+                </div>
+                <div class="bg-zinc-900/40 p-4 rounded-xl border border-zinc-800">
+                    <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Network Origin</h3>
+                    <p class="text-sm">Server: <span class="text-blue-400 font-mono">GitHub User Content</span></p>
+                    <p class="text-sm">Cache: <span class="text-blue-400 font-mono">Edge CDN</span></p>
+                </div>
+                <div class="bg-zinc-900/40 p-4 rounded-xl border border-zinc-800">
+                    <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Optimization Tip</h3>
+                    <p class="text-xs text-zinc-400">Converting this to H.264/MP4 would reduce the transfer size by ~85% while preserving quality.</p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="p-6 text-center text-zinc-500 text-xs border-t border-zinc-900">
+        <p>&copy; 2024 Asset Delivery Pipeline &bull; Rendered via Standard DOM APIs</p>
+    </footer>
+
+    <script>
+        function handleImageLoad() {
+            const img = document.getElementById('large-gif');
+            const overlay = document.getElementById('loading-overlay');
+            
+            // Fade out loader and fade in image
+            overlay.style.opacity = '0';
+            img.style.opacity = '1';
+            
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 500);
+            
+            console.log('GIF Asset fully buffered and rendered.');
+        }
+
+        function handleImageError() {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.innerHTML = `
+                <div class="text-red-500 mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 17c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <p class="text-zinc-200 font-bold">Failed to load asset</p>
+                <p class="text-zinc-500 text-xs mt-1">Check CORS policy or network connection</p>
+            `;
+        }
+    </script>
+</body>
+</html>
