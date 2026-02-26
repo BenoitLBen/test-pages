@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>High-Res Asset Loader</title>
+    <title>Optimized Asset Loader (480p)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .loader {
@@ -22,8 +22,8 @@
     <div class="w-full max-w-4xl space-y-6">
         <!-- Header -->
         <div class="text-center space-y-2">
-            <h1 class="text-2xl font-bold tracking-tight">Asset Preview</h1>
-            <p class="text-sm text-zinc-500 font-mono">Payload: ~50.2 MiB • GIF89a</p>
+            <h1 class="text-2xl font-bold tracking-tight text-blue-400">Memory-Optimized Preview</h1>
+            <p class="text-sm text-zinc-500 font-mono">Target: < 300 MiB VRAM Footprint</p>
         </div>
 
         <!-- Media Container -->
@@ -34,33 +34,51 @@
                 <button 
                     onclick="loadAsset()"
                     class="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-full font-semibold transition-all transform hover:scale-105 active:scale-95 shadow-lg shadow-blue-900/20">
-                    Load High-Res GIF
+                    Load Optimized Asset
                 </button>
-                <p class="text-xs text-zinc-500">Clicking will start a 50MB download</p>
+                <p class="text-xs text-zinc-500">Scaled to 852x480 (192 frames)</p>
             </div>
 
-            <!-- Loading State (Hidden by default) -->
+            <!-- Loading State -->
             <div id="loader-ui" class="hidden absolute inset-0 z-20 bg-zinc-900 flex flex-col items-center justify-center">
                 <div class="loader ease-linear rounded-full border-4 border-zinc-800 h-10 w-10 mb-3"></div>
-                <p class="text-sm text-zinc-400 animate-pulse">Buffering from CDN...</p>
+                <p class="text-sm text-zinc-400 animate-pulse font-mono">FETCHING_BLOB...</p>
             </div>
 
             <!-- The Asset -->
             <img 
                 id="target-gif"
-                alt="High resolution animation"
+                alt="Optimized resolution animation"
                 class="hidden w-full h-full object-contain opacity-0 transition-opacity duration-700"
                 onload="onSuccess()"
                 onerror="onError()"
             />
         </div>
 
-        <!-- Footer / Source -->
-        <div class="flex justify-center">
+        <!-- Technical Metadata -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
+                <p class="text-[10px] text-zinc-500 uppercase font-bold mb-1">In-Memory Calc</p>
+                <code class="text-xs text-blue-300">852*480*4*192</code>
+                <p class="text-sm font-semibold">~299.4 MiB</p>
+            </div>
+            <div class="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
+                <p class="text-[10px] text-zinc-500 uppercase font-bold mb-1">Resolution</p>
+                <p class="text-sm font-semibold">852 x 480 <span class="text-zinc-500 font-normal">(16:9)</span></p>
+                <p class="text-xs text-zinc-400">Scaled from 720p</p>
+            </div>
+            <div class="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
+                <p class="text-[10px] text-zinc-500 uppercase font-bold mb-1">CLI Command</p>
+                <code class="text-[10px] text-zinc-400">ffmpeg -i in.gif -vf "scale=852:480" out.gif</code>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex justify-center pt-4">
             <a href="https://github.com/BenoitLBen/test-pages/releases/tag/large-gif" 
                target="_blank" 
                class="text-xs text-zinc-600 hover:text-zinc-400 underline decoration-zinc-800 underline-offset-4">
-               View Source Repository
+               Source Artifact
             </a>
         </div>
     </div>
@@ -72,11 +90,8 @@
         const img = document.getElementById('target-gif');
 
         function loadAsset() {
-            // UI State Change
             placeholder.classList.add('hidden');
             loaderUi.classList.remove('hidden');
-            
-            // Trigger Network Request
             img.src = ASSET_URL;
             img.classList.remove('hidden');
         }
@@ -84,15 +99,13 @@
         function onSuccess() {
             loaderUi.classList.add('hidden');
             img.classList.replace('opacity-0', 'opacity-100');
-            console.log('Asset delivered and painted.');
         }
 
         function onError() {
             loaderUi.innerHTML = `
                 <div class="text-center p-4">
-                    <span class="text-red-500 text-sm font-bold">Fetch Error</span>
-                    <p class="text-zinc-500 text-xs mt-1">Check network connection or CORS headers.</p>
-                    <button onclick="location.reload()" class="mt-4 text-xs text-blue-400 hover:text-blue-300">Retry</button>
+                    <span class="text-red-500 text-sm font-bold font-mono">HTTP_FETCH_FAILED</span>
+                    <button onclick="location.reload()" class="block mx-auto mt-4 text-xs text-blue-400 hover:text-blue-300">Retry Transaction</button>
                 </div>
             `;
         }
