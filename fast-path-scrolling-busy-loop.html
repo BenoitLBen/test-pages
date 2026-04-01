@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main Thread Blocking Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes pulse-ring {
+            0% { transform: scale(.33); opacity: 1; }
+            80%, 100% { opacity: 0; }
+        }
+        .dot-pulse {
+            position: relative;
+            width: 12px;
+            height: 12px;
+            background-color: #fff;
+            border-radius: 50%;
+        }
+        .dot-pulse::before {
+            content: '';
+            position: absolute;
+            display: block;
+            width: 300%;
+            height: 300%;
+            box-sizing: border-box;
+            margin-left: -100%;
+            margin-top: -100%;
+            border-radius: 45px;
+            background-color: #fff;
+            animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-900">
+
+    <!-- Fixed Banner -->
+    <div id="status-banner" class="fixed top-0 left-0 w-full h-20 shadow-lg flex items-center justify-between px-8 z-50 transition-colors duration-150 bg-blue-600 text-white">
+        <div class="flex items-center gap-4">
+            <div id="status-dot" class="hidden">
+                <div class="dot-pulse"></div>
+            </div>
+            <h1 class="text-xl font-bold uppercase tracking-wider" id="banner-text">Main Thread: Fluid</h1>
+        </div>
+        <div class="text-right">
+            <p class="text-xs opacity-80 font-mono" id="color-code">#2563EB</p>
+            <p class="text-sm font-medium" id="cycle-count">Cycle: 0</p>
+        </div>
+    </div>
+
+    <!-- Controls Floating Card -->
+    <div class="fixed bottom-8 right-8 z-50 bg-white p-6 rounded-2xl shadow-2xl border border-gray-200 max-w-xs">
+        <h2 class="font-bold text-gray-800 mb-2">Performance Control</h2>
+        <p class="text-sm text-gray-500 mb-4">Toggle the "Busy Loop" to see how 500ms blocking operations freeze the UI, animations, and scrolling.</p>
+        
+        <button id="toggle-btn" class="w-full py-3 px-6 rounded-xl font-bold text-white transition-all transform active:scale-95 bg-green-600 hover:bg-green-700 shadow-md">
+            Start Busy Loop
+        </button>
+        
+        <div class="mt-4 flex items-center justify-between text-xs font-mono text-gray-400">
+            <span>Loop Duration:</span>
+            <span class="text-red-500 font-bold">500ms</span>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="pt-32 pb-20 px-6 max-w-3xl mx-auto">
+        <div class="bg-white p-8 md:p-12 rounded-3xl shadow-sm border border-gray-100">
+            <header class="mb-12 border-b border-gray-100 pb-8">
+                <h2 class="text-4xl font-black text-gray-800 mb-4">The Performance Trap</h2>
+                <p class="text-lg text-gray-600 italic">Try scrolling or selecting text while the loop is active...</p>
+            </header>
+
+            <div id="lorem-container" class="space-y-6 text-gray-700 leading-relaxed text-lg">
+                <!-- Content will be injected here -->
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const banner = document.getElementById('status-banner');
+        const bannerText = document.getElementById('banner-text');
+        const colorCode = document.getElementById('color-code');
+        const cycleCountDisplay = document.getElementById('cycle-count');
+        const toggleBtn = document.getElementById('toggle-btn');
+        const statusDot = document.getElementById('status-dot');
+        const loremContainer = document.getElementById('lorem-container');
+
+        let isActive = false;
+        let cycles = 0;
+
+        // Generate massive amounts of text
+        const generateText = () => {
+            let html = '';
+            for (let i = 0; i < 100; i++) {
+                html += `
+                    <p>
+                        <strong>Paragraph ${i + 1}:</strong> Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
+                        Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, 
+                        quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. 
+                        Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
+                        Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+                    </p>
+                `;
+            }
+            loremContainer.innerHTML = html;
+        };
+
+        const getRandomColor = () => {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        };
+
+        const busyWait = (ms) => {
+            const start = performance.now();
+            // This is the "bad" code that blocks the main thread
+            while (performance.now() - start < ms) {
+                // Do nothing, just burn CPU cycles
+            }
+        };
+
+        const updateUI = () => {
+            const newColor = getRandomColor();
+            banner.style.backgroundColor = newColor;
+            colorCode.innerText = newColor.toUpperCase();
+            cycles++;
+            cycleCountDisplay.innerText = `Cycle: ${cycles}`;
+        };
+
+        const runExecution = () => {
+            if (!isActive) return;
+
+            // 1. Update UI (Color change)
+            updateUI();
+
+            // 2. Block the thread immediately after for 500ms
+            // We use setTimeout 0 to ensure the browser has a tiny window to potentially 
+            // process the color update before we freeze it again.
+            setTimeout(() => {
+                if (!isActive) return;
+                busyWait(500);
+                
+                // Schedule next iteration
+                requestAnimationFrame(runExecution);
+            }, 0);
+        };
+
+        toggleBtn.addEventListener('click', () => {
+            isActive = !isActive;
+            
+            if (isActive) {
+                toggleBtn.innerText = 'Stop Busy Loop';
+                toggleBtn.classList.replace('bg-green-600', 'bg-red-600');
+                toggleBtn.classList.replace('hover:bg-green-700', 'hover:bg-red-700');
+                bannerText.innerText = 'Main Thread: BLOCKED (500ms)';
+                statusDot.classList.remove('hidden');
+                runExecution();
+            } else {
+                toggleBtn.innerText = 'Start Busy Loop';
+                toggleBtn.classList.replace('bg-red-600', 'bg-green-600');
+                toggleBtn.classList.replace('hover:bg-red-700', 'hover:bg-green-700');
+                bannerText.innerText = 'Main Thread: Fluid';
+                statusDot.classList.add('hidden');
+                banner.style.backgroundColor = '#2563EB'; // Reset to original blue
+                colorCode.innerText = '#2563EB';
+            }
+        });
+
+        // Initialize content
+        window.onload = generateText;
+    </script>
+</body>
+</html>
