@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>requestAnimationFrame Observer</title>
+    <!-- Using Tailwind CSS for modern, clean styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        /* A subtle pulse animation for the indicator */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+            100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        .indicator-pulse {
+            animation: pulse-ring 1s infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-gray-800 border border-gray-700 rounded-2xl p-8 max-w-md w-full shadow-2xl relative overflow-hidden">
+        <!-- Background decorative blob -->
+        <div class="absolute top-0 right-0 -mt-16 -mr-16 w-32 h-32 bg-blue-500 rounded-full mix-blend-multiply filter blur-2xl opacity-20"></div>
+        <div class="absolute bottom-0 left-0 -mb-16 -ml-16 w-32 h-32 bg-purple-500 rounded-full mix-blend-multiply filter blur-2xl opacity-20"></div>
+
+        <div class="relative z-10 text-center">
+            <h1 class="text-xl font-semibold text-gray-300 mb-2">rAF() Observer</h1>
+            <p class="text-sm text-gray-400 mb-8">
+                Counting frames continuously, but updating the DOM strictly once per second.
+            </p>
+
+            <div class="bg-gray-900 rounded-xl py-8 px-4 shadow-inner border border-gray-800 mb-6 flex flex-col items-center justify-center">
+                <div class="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-br from-green-400 to-blue-500 tracking-tighter" id="fps-display">
+                    --
+                </div>
+                <div class="text-xs font-medium text-gray-500 uppercase tracking-widest mt-2">
+                    Calls / Second
+                </div>
+            </div>
+
+            <div class="flex items-center justify-center space-x-2 text-sm text-gray-400">
+                <div id="status-indicator" class="w-3 h-3 rounded-full bg-green-500 indicator-pulse"></div>
+                <span>Loop is running</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const displayElement = document.getElementById('fps-display');
+            const indicatorElement = document.getElementById('status-indicator');
+            
+            let frameCount = 0;
+            let lastDomUpdateTime = performance.now();
+
+            /**
+             * The main loop function called by requestAnimationFrame.
+             * The browser passes a high-resolution timestamp as an argument.
+             */
+            function frameLoop(timestamp) {
+                // Increment the counter every time this function is called
+                frameCount++;
+
+                // Calculate how much time has passed since we last updated the DOM
+                const elapsedMilliseconds = timestamp - lastDomUpdateTime;
+
+                // Only update the page if 1000ms (1 second) or more has passed
+                if (elapsedMilliseconds >= 1000) {
+                    // 1. Update the visible text with the number of frames accumulated
+                    displayElement.textContent = frameCount;
+
+                    // 2. Reset the frame counter for the next second
+                    frameCount = 0;
+
+                    // 3. Update the tracking timestamp. 
+                    // Using 'timestamp' instead of 'performance.now()' ensures consistency with rAF.
+                    lastDomUpdateTime = timestamp;
+                    
+                    // Optional: Briefly flash the indicator to show a DOM update happened
+                    indicatorElement.classList.remove('indicator-pulse');
+                    void indicatorElement.offsetWidth; // Trigger reflow to restart animation
+                    indicatorElement.classList.add('indicator-pulse');
+                }
+
+                // Request the next frame recursively
+                requestAnimationFrame(frameLoop);
+            }
+
+            // Start the loop
+            requestAnimationFrame(frameLoop);
+        });
+    </script>
+</body>
+</html>
