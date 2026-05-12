@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive WebGL Spinning Cube</title>
+    <!-- Tailwind CSS for premium UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #0b0f19;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        /* Custom scrollbar for control panel if needed */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- WebGL Canvas Container -->
+    <div id="canvas-container" class="absolute inset-0 w-full h-full z-0"></div>
+
+    <!-- JavaScript Engine -->
+    <script>
+        
+        // Global variables for Three.js Ecosystem
+        let scene, camera, renderer;
+        let currentMesh, cubeGroup;
+        let ambientLight, directionalLight, pointLight;
+        
+        // Configuration & State
+        const config = {
+            baseRotationSpeedX: 0.008,
+            baseRotationSpeedY: 0.012,
+            speedMultiplier: 1.0,
+            isRotating: true,
+            currentColor: 0x22d3ee,
+            isWireframe: false,
+            currentGeometry: 'cube'
+        };
+
+        // User Interaction / Orbit State Variables
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let targetRotation = { x: 0, y: 0 };
+        let currentRotation = { x: 0, y: 0 };
+        const dampingFactor = 0.08;
+
+        // FPS tracking
+        let lastTime = performance.now();
+        let frameCount = 0;
+        const fpsElement = document.getElementById('fps-counter');
+
+        function initEngine() {
+            const container = document.getElementById('canvas-container');
+
+            // 1. Create Scene with luxurious fog for depth perception
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0b0f19);
+            scene.fog = new THREE.FogExp2(0x0b0f19, 0.15);
+
+            // 2. Create Camera
+            camera = new THREE.PerspectiveCamera(
+                45, 
+                window.innerWidth / window.innerHeight, 
+                0.1, 
+                100
+            );
+            camera.position.z = 6;
+
+            // 3. Create WebGL Renderer with High-Performance Settings
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap at 2 for mobile performance
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.0;
+            
+            container.appendChild(renderer.domElement);
+
+            // Group container to hold object meshes and enable independent camera/mouse rotations
+            cubeGroup = new THREE.Group();
+            scene.add(cubeGroup);
+
+            buildGeometry();
+
+            setupLighting();
+
+            window.addEventListener('resize', onWindowResize, false);
+
+            setupInteractions();
+        }
+
+        function buildGeometry() {
+            // Remove previous mesh if exists
+            if (currentMesh) {
+                cubeGroup.remove(currentMesh);
+                currentMesh.geometry.dispose();
+                currentMesh.material.dispose();
+            }
+
+            let geometry;
+            
+            // Choose geometry based on dashboard configuration
+            if (config.currentGeometry === 'cube') {
+                // High segmented box to respond nicely to lights and wireframes
+                geometry = new THREE.BoxGeometry(2, 2, 2, 4, 4, 4);
+            } else if (config.currentGeometry === 'torus') {
+                geometry = new THREE.TorusKnotGeometry(0.8, 0.26, 120, 16);
+            } else if (config.currentGeometry === 'octa') {
+                geometry = new THREE.OctahedronGeometry(1.3, 0);
+            }
+
+            // High premium physical material with reflection and roughness tuning
+            const material = new THREE.MeshPhysicalMaterial({
+                color: config.currentColor,
+                wireframe: config.isWireframe,
+                roughness: 0.15,
+                metalness: 0.1,
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.1,
+                flatShading: config.currentGeometry === 'octa', // Low-poly style for octahedron
+                side: THREE.DoubleSide
+            });
+
+            currentMesh = new THREE.Mesh(geometry, material);
+            currentMesh.castShadow = true;
+            currentMesh.receiveShadow = true;
+            
+            cubeGroup.add(currentMesh);
+        }
+
+        function setupLighting() {
+            // Ambient subtle lighting
+            ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+
+            // Soft studio directional light from top right
+            directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            directionalLight.position.set(5, 8, 5);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+
+            // Colorful accent point light from bottom-left to create chromatic depth
+            pointLight = new THREE.PointLight(0x6366f1, 2, 15);
+            pointLight.position.set(-4, -4, 2);
+            scene.add(pointLight);
+
+            // Extra rim light to emphasize edges
+            const rimLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            rimLight.position.set(-5, 3, -5);
+            scene.add(rimLight);
+        }
+
+        function onWindowResize() {
+            // Dynamically match window canvas size perfectly to viewport bounding dimensions
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        }
+
+        function setupInteractions() {
+            const container = document.getElementById('canvas-container');
+
+            // Mouse Event Listeners for manual scene Orbiting
+            container.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+
+                // Alter target rotation based on movement vector delta
+                targetRotation.y += deltaX * 0.007;
+                targetRotation.x += deltaY * 0.007;
+
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            // Mobile Touch Support integration
+            container.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                }
+            }, { passive: true });
+
+            window.addEventListener('touchmove', (e) => {
+                if (!isDragging || e.touches.length !== 1) return;
+
+                const deltaX = e.touches[0].clientX - previousMousePosition.x;
+                const deltaY = e.touches[0].clientY - previousMousePosition.y;
+
+                targetRotation.y += deltaX * 0.009;
+                targetRotation.x += deltaY * 0.009;
+
+                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }, { passive: true });
+
+            window.addEventListener('touchend', () => {
+                isDragging = false;
+            });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // FPS engine monitoring calculation
+            frameCount++;
+            const time = performance.now();
+            if (time >= lastTime + 1000) {
+                frameCount = 0;
+                lastTime = time;
+            }
+
+            // 1. Process default constant rotation spin animation if unpaused
+            if (config.isRotating) {
+                currentMesh.rotation.x += config.baseRotationSpeedX * config.speedMultiplier;
+                currentMesh.rotation.y += config.baseRotationSpeedY * config.speedMultiplier;
+            }
+
+            // 2. Compute smooth Damped Interpolation for custom viewport camera dragging
+            currentRotation.x += (targetRotation.x - currentRotation.x) * dampingFactor;
+            currentRotation.y += (targetRotation.y - currentRotation.y) * dampingFactor;
+
+            cubeGroup.rotation.x = currentRotation.x;
+            cubeGroup.rotation.y = currentRotation.y;
+
+            // Render updated canvas layout matrix
+            renderer.render(scene, camera);
+        }
+
+        // Standard operational safeguard loading standardizer loop hook
+        window.onload = function () {
+            initEngine();
+            animate();
+        };
+    </script>
+</body>
+</html>
