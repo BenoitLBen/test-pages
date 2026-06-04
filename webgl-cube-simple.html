@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pure WebGL Spinning Cube - Performance Diagnostics</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0b0f19;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #f3f4f6;
+        }
+        #webgl-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        /* Diagnostic Panel Styling */
+        #diagnostic-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(11, 15, 25, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(34, 211, 238, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            width: 320px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            z-index: 10;
+        }
+        .panel-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #22d3ee;
+            margin-bottom: 12px;
+            font-weight: 700;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 6px;
+        }
+        .stat-group {
+            margin-bottom: 12px;
+        }
+        .stat-group:last-child {
+            margin-bottom: 0;
+        }
+        .stat-group-title {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            color: #e5e7eb;
+        }
+        .stat-label {
+            color: #9ca3af;
+        }
+        .stat-value {
+            font-weight: 600;
+        }
+        .text-cyan {
+            color: #22d3ee !important;
+        }
+        .text-xs {
+            font-size: 0.7rem;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- WebGL Canvas Context -->
+    <canvas id="webgl-canvas"></canvas>
+
+    <!-- Memory Diagnostics Overlay Panel -->
+    <div id="diagnostic-panel">
+        <div class="panel-title">WebGL GPU Memory Profiler</div>
+        
+        <!-- Canvas Dimensions -->
+        <div class="stat-group">
+            <div class="stat-group-title">Display Context</div>
+            <div class="stat-row">
+                <span class="stat-label">Resolution:</span>
+                <span id="canvas-res" class="stat-value">0 × 0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Total Pixels:</span>
+                <span id="canvas-pixels" class="stat-value">0.00 Mpx</span>
+            </div>
+        </div>
+
+        <!-- Standard Buffer Allocation (Double-buffered) -->
+        <div class="stat-group">
+            <div class="stat-group-title">Standard Buffer Memory</div>
+            <div class="stat-row">
+                <span class="stat-label">Color (RGBA8):</span>
+                <span id="mem-color" class="stat-value">0.00 MB</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Depth/Stencil (D24S8):</span>
+                <span id="mem-depth" class="stat-value">0.00 MB</span>
+            </div>
+            <div class="stat-row" style="border-top: 1px dashed rgba(255,255,255,0.1); margin-top: 4px; padding-top: 4px;">
+                <span class="stat-label text-cyan">Standard Backbuffer:</span>
+                <span id="mem-total" class="stat-value text-cyan">0.00 MB</span>
+            </div>
+        </div>
+
+        <!-- 4x MSAA Estimates -->
+        <div class="stat-group">
+            <div class="stat-group-title">4x MSAA Allocation Estimate</div>
+            <div class="stat-row">
+                <span class="stat-label">Multisampled Buffer (4x):</span>
+                <span id="msaa-samples" class="stat-value">0.00 MB</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Resolve Destination:</span>
+                <span id="msaa-resolve" class="stat-value">0.00 MB</span>
+            </div>
+            <div class="stat-row" style="border-top: 1px dashed rgba(255,255,255,0.1); margin-top: 4px; padding-top: 4px;">
+                <span class="stat-label text-cyan">Total Pipeline Footprint:</span>
+                <span id="msaa-total" class="stat-value text-cyan">0.00 MB</span>
+            </div>
+            <div class="text-xs">* Assuming 32-bit color & 32-bit depth/stencil multisample targets resolved down to single-sample swapchain.</div>
+        </div>
+    </div>
+
+    <script>
+        // Global State & Parameters 
+        const config = {
+            baseRotationSpeedX: 0.008,
+            baseRotationSpeedY: 0.012,
+            speedMultiplier: 1.0,
+            isRotating: true
+        };
+
+        // Cumulative auto-rotation tracker
+        let autoRotation = { x: 0, y: 0 };
+
+        // Matrix Math Helpers (Custom Float32 Matrix Operations)
+        const Mat4 = {
+            identity: () => new Float32Array([
+                1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1
+            ]),
+
+            multiply: (a, b) => {
+                const out = new Float32Array(16);
+                const b00 = b[0], b01 = b[1], b02 = b[2], b03 = b[3];
+                const b10 = b[4], b11 = b[5], b12 = b[6], b13 = b[7];
+                const b20 = b[8], b21 = b[9], b22 = b[10], b23 = b[11];
+                const b30 = b[12], b31 = b[13], b32 = b[14], b33 = b[15];
+
+                let a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3];
+                out[0] = b00 * a00 + b10 * a01 + b20 * a02 + b30 * a03;
+                out[1] = b01 * a00 + b11 * a01 + b21 * a02 + b31 * a03;
+                out[2] = b02 * a00 + b12 * a01 + b22 * a02 + b32 * a03;
+                out[3] = b03 * a00 + b13 * a01 + b23 * a02 + b33 * a03;
+
+                a00 = a[4]; a01 = a[5]; a02 = a[6]; a03 = a[7];
+                out[4] = b00 * a00 + b10 * a01 + b20 * a02 + b30 * a03;
+                out[5] = b01 * a00 + b11 * a01 + b21 * a02 + b31 * a03;
+                out[6] = b02 * a00 + b12 * a01 + b22 * a02 + b32 * a03;
+                out[7] = b03 * a00 + b13 * a01 + b23 * a02 + b33 * a03;
+
+                a00 = a[8]; a01 = a[9]; a02 = a[10]; a03 = a[11];
+                out[8] = b00 * a00 + b10 * a01 + b20 * a02 + b30 * a03;
+                out[9] = b01 * a00 + b11 * a01 + b21 * a02 + b31 * a03;
+                out[10] = b02 * a00 + b12 * a01 + b22 * a02 + b32 * a03;
+                out[11] = b03 * a00 + b13 * a01 + b23 * a02 + b33 * a03;
+
+                a00 = a[12]; a01 = a[13]; a02 = a[14]; a03 = a[15];
+                out[12] = b00 * a00 + b10 * a01 + b20 * a02 + b30 * a03;
+                out[13] = b01 * a00 + b11 * a01 + b21 * a02 + b31 * a03;
+                out[14] = b02 * a00 + b12 * a01 + b22 * a02 + b32 * a03;
+                out[15] = b03 * a00 + b13 * a01 + b23 * a02 + b33 * a03;
+                return out;
+            },
+
+            perspective: (fovRad, aspect, near, far) => {
+                const out = new Float32Array(16);
+                const f = 1.0 / Math.tan(fovRad / 2);
+                const nf = 1 / (near - far);
+                out[0] = f / aspect;
+                out[5] = f;
+                out[10] = (far + near) * nf;
+                out[11] = -1;
+                out[14] = (2 * far * near) * nf;
+                return out;
+            },
+
+            translation: (x, y, z) => {
+                const out = Mat4.identity();
+                out[12] = x;
+                out[13] = y;
+                out[14] = z;
+                return out;
+            },
+
+            rotateX: (rad) => {
+                const out = Mat4.identity();
+                const s = Math.sin(rad), c = Math.cos(rad);
+                out[5] = c;  out[6] = s;
+                out[9] = -s; out[10] = c;
+                return out;
+            },
+
+            rotateY: (rad) => {
+                const out = Mat4.identity();
+                const s = Math.sin(rad), c = Math.cos(rad);
+                out[0] = c;  out[2] = -s;
+                out[8] = s;  out[10] = c;
+                return out;
+            },
+
+            getNormalMatrix: (m) => {
+                return new Float32Array([
+                    m[0], m[1], m[2],
+                    m[4], m[5], m[6],
+                    m[8], m[9], m[10]
+                ]);
+            }
+        };
+
+        const vertexShaderSource = `#version 300 es
+        layout(location = 0) in vec3 aPosition;
+        layout(location = 1) in vec3 aNormal;
+
+        uniform mat4 uModelMatrix;
+        uniform mat4 uViewMatrix;
+        uniform mat4 uProjectionMatrix;
+        uniform mat3 uNormalMatrix;
+
+        out vec3 vNormal;
+        out vec3 vPosition;
+
+        void main() {
+            vec4 worldPosition = uModelMatrix * vec4(aPosition, 1.0);
+            vPosition = worldPosition.xyz;
+            vNormal = normalize(uNormalMatrix * aNormal);
+            gl_Position = uProjectionMatrix * uViewMatrix * worldPosition;
+        }
+        `;
+
+        const fragmentShaderSource = `#version 300 es
+        precision highp float;
+
+        in vec3 vNormal;
+        in vec3 vPosition;
+
+        uniform vec3 uLightDirection;
+        uniform vec3 uLightColor;
+        uniform vec3 uAmbientColor;
+        uniform vec3 uObjectColor;
+
+        out vec4 fragColor;
+
+        void main() {
+            vec3 normal = normalize(vNormal);
+            vec3 lightDir = normalize(uLightDirection);
+            float diff = max(dot(normal, lightDir), 0.0);
+            
+            vec3 viewDir = normalize(vec3(0.0, 0.0, 6.0) - vPosition);
+            vec3 halfDir = normalize(lightDir + viewDir);
+            float spec = pow(max(dot(normal, halfDir), 0.0), 45.0);
+            vec3 specular = vec3(0.3) * spec * uLightColor;
+
+            vec3 ambient = uAmbientColor * uObjectColor;
+            vec3 diffuse = diff * uLightColor * uObjectColor;
+
+            fragColor = vec4(ambient + diffuse + specular, 1.0);
+        }
+        `;
+
+        let gl;
+        let program;
+        let vao;
+        let uniformLocations = {};
+
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error("Shader Compile Error:", gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            return shader;
+        }
+
+        function calculateMemoryFootprint(width, height) {
+            const totalPixels = width * height;
+
+            // Color Buffer standard allocation (32-bit RGBA = 4 bytes per pixel)
+            const colorBytes = totalPixels * 4;
+
+            // Standard Depth+Stencil Allocation (typically D24S8 = 32-bit/4 bytes per pixel in contemporary hardware)
+            const depthStencilBytes = totalPixels * 4;
+
+            const standardTotalBytes = colorBytes + depthStencilBytes;
+
+            // 4x MSAA Allocation Estimate
+            // In 4x MSAA, we store 4 samples per pixel for both color and depth/stencil before resolving.
+            const msaaColorSamplesBytes = totalPixels * 4 * 4;
+            const msaaDepthStencilSamplesBytes = totalPixels * 4 * 4;
+            const msaaSubtotalBytes = msaaColorSamplesBytes + msaaDepthStencilSamplesBytes;
+
+            // When rendering is complete, the MSAA color buffer is resolved down to the standard resolved target
+            const resolveDestinationBytes = totalPixels * 4; 
+            const totalMsaaPipelineBytes = msaaSubtotalBytes + resolveDestinationBytes;
+
+            // Math to string converter (formatted in Megabytes)
+            const toMB = (bytes) => (bytes / (1024 * 1024)).toFixed(2) + " MB";
+
+            // Update UI elements
+            document.getElementById('canvas-res').textContent = `${width} × ${height}`;
+            document.getElementById('canvas-pixels').textContent = `${(totalPixels / 1000000).toFixed(2)} Mpx`;
+
+            document.getElementById('mem-color').textContent = toMB(colorBytes);
+            document.getElementById('mem-depth').textContent = toMB(depthStencilBytes);
+            document.getElementById('mem-total').textContent = toMB(standardTotalBytes);
+
+            document.getElementById('msaa-samples').textContent = toMB(msaaSubtotalBytes);
+            document.getElementById('msaa-resolve').textContent = toMB(resolveDestinationBytes);
+            document.getElementById('msaa-total').textContent = toMB(totalMsaaPipelineBytes);
+        }
+
+        function initWebGL() {
+            const canvas = document.getElementById('webgl-canvas');
+            gl = canvas.getContext('webgl2', { antialias: true, powerPreference: "high-performance" });
+            
+            if (!gl) {
+                console.error("WebGL 2.0 is not supported in this browser.");
+                return;
+            }
+
+            const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+            const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+
+            program = gl.createProgram();
+            gl.attachShader(program, vertexShader);
+            gl.attachShader(program, fragmentShader);
+            gl.linkProgram(program);
+
+            if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                console.error("Program Link Error:", gl.getProgramInfoLog(program));
+                return;
+            }
+
+            uniformLocations = {
+                modelMatrix: gl.getUniformLocation(program, "uModelMatrix"),
+                viewMatrix: gl.getUniformLocation(program, "uViewMatrix"),
+                projectionMatrix: gl.getUniformLocation(program, "uProjectionMatrix"),
+                normalMatrix: gl.getUniformLocation(program, "uNormalMatrix"),
+                lightDirection: gl.getUniformLocation(program, "uLightDirection"),
+                lightColor: gl.getUniformLocation(program, "uLightColor"),
+                ambientColor: gl.getUniformLocation(program, "uAmbientColor"),
+                objectColor: gl.getUniformLocation(program, "uObjectColor")
+            };
+
+            setupGeometry();
+            resizeCanvas();
+        }
+
+        function setupGeometry() {
+            const vertices = new Float32Array([
+                // Front
+                -1.0, -1.0,  1.0,   1.0, -1.0,  1.0,   1.0,  1.0,  1.0,  -1.0,  1.0,  1.0,
+                // Back
+                -1.0, -1.0, -1.0,  -1.0,  1.0, -1.0,   1.0,  1.0, -1.0,   1.0, -1.0, -1.0,
+                // Top
+                -1.0,  1.0, -1.0,  -1.0,  1.0,  1.0,   1.0,  1.0,  1.0,   1.0,  1.0, -1.0,
+                // Bottom
+                -1.0, -1.0, -1.0,   1.0, -1.0, -1.0,   1.0, -1.0,  1.0,  -1.0, -1.0,  1.0,
+                // Right
+                 1.0, -1.0, -1.0,   1.0,  1.0, -1.0,   1.0,  1.0,  1.0,   1.0, -1.0,  1.0,
+                // Left
+                -1.0, -1.0, -1.0,  -1.0, -1.0,  1.0,  -1.0,  1.0,  1.0,  -1.0,  1.0, -1.0,
+            ]);
+
+            const normals = new Float32Array([
+                // Front
+                 0.0,  0.0,  1.0,   0.0,  0.0,  1.0,   0.0,  0.0,  1.0,   0.0,  0.0,  1.0,
+                // Back
+                 0.0,  0.0, -1.0,   0.0,  0.0, -1.0,   0.0,  0.0, -1.0,   0.0,  0.0, -1.0,
+                // Top
+                 0.0,  1.0,  0.0,   0.0,  1.0,  0.0,   0.0,  1.0,  0.0,   0.0,  1.0,  0.0,
+                // Bottom
+                 0.0, -1.0,  0.0,   0.0, -1.0,  0.0,   0.0, -1.0,  0.0,   0.0, -1.0,  0.0,
+                // Right
+                 1.0,  0.0,  0.0,   1.0,  0.0,  0.0,   1.0,  0.0,  0.0,   1.0,  0.0,  0.0,
+                // Left
+                -1.0,  0.0,  0.0,  -1.0,  0.0,  0.0,  -1.0,  0.0,  0.0,  -1.0,  0.0,  0.0,
+            ]);
+
+            const indices = new Uint16Array([
+                0,  1,  2,      0,  2,  3,
+                4,  5,  6,      4,  6,  7,
+                8,  9,  10,     8,  10, 11,
+                12, 13, 14,     12, 14, 15,
+                16, 17, 18,     16, 18, 19,
+                20, 21, 22,     20, 22, 23
+            ]);
+
+            vao = gl.createVertexArray();
+            gl.bindVertexArray(vao);
+
+            const positionBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+            gl.enableVertexAttribArray(0);
+            gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+            const normalBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
+            gl.enableVertexAttribArray(1);
+            gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
+
+            const indexBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+
+            gl.bindVertexArray(null);
+        }
+
+        function resizeCanvas() {
+            const canvas = document.getElementById('webgl-canvas');
+            const devicePixelRatio = Math.min(window.devicePixelRatio, 2);
+            
+            const displayWidth = window.innerWidth;
+            const displayHeight = window.innerHeight;
+
+            if (canvas.width !== Math.floor(displayWidth * devicePixelRatio) || 
+                canvas.height !== Math.floor(displayHeight * devicePixelRatio)) {
+                
+                canvas.width = Math.floor(displayWidth * devicePixelRatio);
+                canvas.height = Math.floor(displayHeight * devicePixelRatio);
+
+                // Recalculate and update the memory usage labels
+                calculateMemoryFootprint(canvas.width, canvas.height);
+            }
+        }
+
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+        });
+
+        function render() {
+            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+            gl.clearColor(0.043, 0.059, 0.098, 1.0); // Background color #0b0f19
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            gl.enable(gl.DEPTH_TEST);
+            gl.enable(gl.CULL_FACE);
+
+            gl.useProgram(program);
+
+            if (config.isRotating) {
+                autoRotation.x += config.baseRotationSpeedX * config.speedMultiplier;
+                autoRotation.y += config.baseRotationSpeedY * config.speedMultiplier;
+            }
+
+            const viewMatrix = Mat4.translation(0, 0, -6.0);
+
+            const fovRad = 45 * Math.PI / 180;
+            const aspect = gl.canvas.width / gl.canvas.height;
+            const projectionMatrix = Mat4.perspective(fovRad, aspect, 0.1, 100.0);
+
+            const rAutoX = Mat4.rotateX(autoRotation.x);
+            const rAutoY = Mat4.rotateY(autoRotation.y);
+            const modelMatrix = Mat4.multiply(rAutoX, rAutoY);
+
+            const normalMatrix = Mat4.getNormalMatrix(modelMatrix);
+
+            gl.uniformMatrix4fv(uniformLocations.modelMatrix, false, modelMatrix);
+            gl.uniformMatrix4fv(uniformLocations.viewMatrix, false, viewMatrix);
+            gl.uniformMatrix4fv(uniformLocations.projectionMatrix, false, projectionMatrix);
+            gl.uniformMatrix3fv(uniformLocations.normalMatrix, false, normalMatrix);
+
+            gl.uniform3fv(uniformLocations.lightDirection, new Float32Array([5, 6, 4]));
+            gl.uniform3fv(uniformLocations.lightColor, new Float32Array([1.0, 1.0, 1.0]));
+            gl.uniform3fv(uniformLocations.ambientColor, new Float32Array([0.4, 0.4, 0.4]));
+            gl.uniform3fv(uniformLocations.objectColor, new Float32Array([0.133, 0.827, 0.933])); // Cyan hue #22d3ee
+
+            gl.bindVertexArray(vao);
+            gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
+            gl.bindVertexArray(null);
+
+            requestAnimationFrame(render);
+        }
+
+        window.onload = function() {
+            initWebGL();
+            requestAnimationFrame(render);
+        };
+    </script>
+</body>
+</html>
