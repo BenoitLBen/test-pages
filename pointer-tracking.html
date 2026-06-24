@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Touch & Pointer Accuracy Tester (Defensive)</title>
+    <!-- Tailwind CSS for sleek UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter for clean typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            touch-action: none; /* Prevents default panning/zooming to capture raw inputs */
+            overflow: hidden;
+            background-color: #0b0f19; /* Dark sleek slate */
+        }
+        canvas {
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen select-none">
+
+    <!-- Single high-performance canvas for persistent drawing -->
+    <canvas id="paintCanvas" class="absolute inset-0 block w-full h-full z-0 cursor-crosshair"></canvas>
+
+    <!-- Floating Minimalist HUD -->
+    <div id="hud" class="absolute top-4 left-4 z-10 w-72 bg-slate-900/90 backdrop-blur-md text-slate-100 rounded-xl border border-slate-800 shadow-xl pointer-events-auto p-4 space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <div class="flex items-center space-x-2">
+                <div class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                <h1 class="font-bold text-xs tracking-wider text-slate-300">ACCURACY RADAR</h1>
+            </div>
+            <button onclick="clearCanvas()" class="text-[10px] bg-slate-800 hover:bg-rose-950 hover:text-rose-400 text-slate-400 py-1 px-2.5 rounded-md transition duration-150 font-medium active:scale-95">
+                Clear
+            </button>
+        </div>
+
+        <!-- Telemetry Data Grid -->
+        <div class="space-y-2 text-xs font-mono">
+            <div class="flex justify-between items-center bg-slate-950/50 p-2 rounded border border-slate-800/40">
+                <span class="text-slate-500 text-[10px]">POINTER TYPE</span>
+                <span id="pointerType" class="text-slate-300 font-bold uppercase tracking-wider">-</span>
+            </div>
+            <div class="flex justify-between items-center bg-slate-950/50 p-2 rounded border border-slate-800/40">
+                <span class="text-slate-500 text-[10px]">COORDINATES</span>
+                <span id="coordinates" class="text-emerald-400 font-bold">- , -</span>
+            </div>
+            <div class="flex justify-between items-center bg-slate-950/50 p-2 rounded border border-slate-800/40">
+                <span class="text-slate-500 text-[10px]">PRESSURE</span>
+                <span id="pressure" class="text-slate-300">-</span>
+            </div>
+            <div class="flex justify-between items-center bg-slate-950/50 p-2 rounded border border-slate-800/40">
+                <span class="text-slate-500 text-[10px]">TILT (X / Y)</span>
+                <span id="tilt" class="text-slate-300">-</span>
+            </div>
+            <div class="flex justify-between items-center bg-slate-950/50 p-2 rounded border border-slate-800/40">
+                <span class="text-slate-500 text-[10px]">POINTER ID</span>
+                <span id="pointerId" class="text-slate-400">-</span>
+            </div>
+        </div>
+
+        <!-- Touch Legend -->
+        <div class="pt-1 border-t border-slate-800/60 text-[10px] text-slate-500 space-y-1">
+            <div class="flex items-center space-x-1.5">
+                <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+                <span>Mouse (Cyan)</span>
+            </div>
+            <div class="flex items-center space-x-1.5">
+                <span class="w-2 h-2 rounded-full bg-fuchsia-400"></span>
+                <span>Touch (Fuchsia)</span>
+            </div>
+            <div class="flex items-center space-x-1.5">
+                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span>Stylus Pen (Amber)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instruction helper overlay -->
+    <div id="hint" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-slate-900/60 backdrop-blur-sm border border-slate-800/80 text-slate-400 text-[10px] px-3.5 py-1.5 rounded-full z-10 pointer-events-none transition-opacity duration-300">
+        Draw anywhere to measure Chrome tracking accuracy.
+    </div>
+
+    <script>
+        const canvas = document.getElementById('paintCanvas');
+        const ctx = canvas ? canvas.getContext('2d') : null;
+        
+        const uiPointerType = document.getElementById('pointerType');
+        const uiCoordinates = document.getElementById('coordinates');
+        const uiPressure = document.getElementById('pressure');
+        const uiTilt = document.getElementById('tilt');
+        const uiPointerId = document.getElementById('pointerId');
+        const uiHint = document.getElementById('hint');
+
+        // Store active drawing states safely using a Map
+        const activeStrokes = new Map();
+
+        // Specific color mapping to instantly classify input accuracy
+        const TYPE_COLORS = {
+            mouse: '#22d3ee',   // Cyan-400
+            touch: '#e879f9',   // Fuchsia-400
+            pen: '#fbbf24',     // Amber-400
+            unknown: '#94a3b8'  // Slate-400
+        };
+
+        function resizeCanvas() {
+            if (!canvas || !ctx) return;
+
+            const dpr = window.devicePixelRatio || 1;
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+
+            // Save canvas contents to prevent losing drawings on window resize
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            if (tempCtx && canvas.width > 0 && canvas.height > 0) {
+                try {
+                    tempCtx.drawImage(canvas, 0, 0);
+                } catch (e) {
+                    console.warn("Failed to copy temporary canvas buffer on resize:", e);
+                }
+            }
+
+            // Apply high-DPI scaling
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            canvas.style.width = width + 'px';
+            canvas.style.height = height + 'px';
+
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(dpr, dpr);
+            
+            // Set drawing defaults
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // Fill background
+            ctx.fillStyle = '#0b0f19';
+            ctx.fillRect(0, 0, width, height);
+
+            // Restore canvas drawings back onto the newly scaled canvas layout
+            if (tempCanvas.width > 0 && tempCanvas.height > 0) {
+                try {
+                    ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width / dpr, tempCanvas.height / dpr);
+                } catch (e) {
+                    console.warn("Failed to restore canvas buffer on resize:", e);
+                }
+            }
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        function getStrokeColor(type) {
+            return TYPE_COLORS[type] || TYPE_COLORS.unknown;
+        }
+
+        function updateTelemetry(e) {
+            if (!e) return;
+            const x = typeof e.clientX === 'number' ? e.clientX : 0;
+            const y = typeof e.clientY === 'number' ? e.clientY : 0;
+            const type = e.pointerType || 'unknown';
+            
+            // Defensive sanitization of pointer pressure values
+            let pressure = 0.5;
+            if (typeof e.pressure === 'number' && !isNaN(e.pressure)) {
+                pressure = e.pressure;
+            }
+
+            const tiltX = typeof e.tiltX === 'number' ? e.tiltX : 0;
+            const tiltY = typeof e.tiltY === 'number' ? e.tiltY : 0;
+
+            if (uiPointerType) uiPointerType.textContent = type;
+            if (uiCoordinates) uiCoordinates.textContent = `${x.toFixed(1)}, ${y.toFixed(1)}`;
+            if (uiPressure) {
+                uiPressure.textContent = type === 'mouse' ? 'N/A' : pressure.toFixed(3);
+            }
+            if (uiTilt) uiTilt.textContent = `${tiltX}° / ${tiltY}°`;
+            if (uiPointerId && e.pointerId !== undefined) {
+                uiPointerId.textContent = e.pointerId;
+            }
+
+            // Fade instructions out once drawing has begun
+            if (uiHint) {
+                uiHint.style.opacity = '0';
+            }
+        }
+
+        function handlePointerDown(e) {
+            if (!e || !ctx) return;
+            
+            // Prevent scrolling on Chrome/Mobile safely
+            if (e.cancelable) {
+                e.preventDefault();
+            }
+            
+            updateTelemetry(e);
+
+            const pointerId = e.pointerId;
+            const type = e.pointerType || 'unknown';
+            const x = e.clientX;
+            const y = e.clientY;
+
+            activeStrokes.set(pointerId, {
+                lastX: x,
+                lastY: y,
+                color: getStrokeColor(type),
+                type: type
+            });
+        }
+
+        function handlePointerMove(e) {
+            if (!e || !ctx) return;
+            
+            const stroke = activeStrokes.get(e.pointerId);
+            if (!stroke) return;
+
+            if (e.cancelable) {
+                e.preventDefault();
+            }
+
+            updateTelemetry(e);
+
+            // Access coalesced coordinates for high-precision sub-frame reporting in Chrome
+            let points = [];
+            if (typeof e.getCoalescedEvents === 'function') {
+                try {
+                    points = e.getCoalescedEvents() || [];
+                } catch (err) {
+                    // Safe fallback if API context is sandboxed or limited
+                    points = [e];
+                }
+            } else {
+                points = [e];
+            }
+
+            // Fallback if coalesced events array is returned empty
+            if (!points || points.length === 0) {
+                points = [e];
+            }
+
+            // Sanitize and read pressure safely
+            let pressure = 0.5;
+            if (typeof e.pressure === 'number' && !isNaN(e.pressure)) {
+                pressure = e.pressure;
+            }
+
+            // Configure drawing style properties
+            ctx.strokeStyle = stroke.color;
+            const baseWidth = stroke.type === 'touch' ? 4 : 2;
+            ctx.lineWidth = baseWidth + (pressure * 6);
+
+            // Process every high-precision sub-frame coordinate mapped by Chrome
+            points.forEach(point => {
+                if (!point || typeof point.clientX !== 'number' || typeof point.clientY !== 'number') return;
+                
+                ctx.beginPath();
+                ctx.moveTo(stroke.lastX, stroke.lastY);
+                ctx.lineTo(point.clientX, point.clientY);
+                ctx.stroke();
+
+                stroke.lastX = point.clientX;
+                stroke.lastY = point.clientY;
+            });
+        }
+
+        function handlePointerUpOrCancel(e) {
+            if (!e) return;
+            activeStrokes.delete(e.pointerId);
+        }
+
+        // Configure event options to ensure active prevention of scrolling behaviors
+        const options = { capture: true, passive: false };
+
+        // Bind active stroke handlers to the Canvas
+        if (canvas) {
+            canvas.addEventListener('pointerdown', handlePointerDown, options);
+            canvas.addEventListener('pointermove', handlePointerMove, options);
+        }
+
+        // Bind lifecycle cancel handlers to the window to prevent broken lines/states
+        window.addEventListener('pointerup', handlePointerUpOrCancel, options);
+        window.addEventListener('pointercancel', handlePointerUpOrCancel, options);
+
+        function clearCanvas() {
+            if (!ctx) return;
+            ctx.fillStyle = '#0b0f19';
+            ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+        }
+
+        // Initialize App Canvas settings on startup
+        window.onload = function() {
+            resizeCanvas();
+        };
+    </script>
+</body>
+</html>
