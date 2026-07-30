@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Open Link in New Tab - Interactive Guide & Builder</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Header / Navbar -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 text-white p-2 rounded-lg">
+                    <i class="fa-solid fa-arrow-up-right-from-square text-lg"></i>
+                </div>
+                <span class="font-bold text-lg sm:text-xl tracking-tight text-white">New Tab Link Guide</span>
+            </div>
+            <a href="#generator" class="text-xs sm:text-sm bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2 rounded-lg transition-colors">
+                Code Builder
+            </a>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+        
+        <!-- Hero Section -->
+        <section class="text-center py-6 sm:py-10 max-w-3xl mx-auto">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 mb-4">
+                <i class="fa-solid fa-code text-xs"></i> HTML & JavaScript Reference
+            </span>
+            <h1 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight mb-4">
+                How to Open Links in a <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">New Tab</span>
+            </h1>
+            <p class="text-slate-400 text-base sm:text-lg">
+                Learn the HTML <code class="text-indigo-300 font-mono text-sm bg-slate-800 px-1.5 py-0.5 rounded">target="_blank"</code> attribute, essential security features like <code class="text-violet-300 font-mono text-sm bg-slate-800 px-1.5 py-0.5 rounded">rel="noopener"</code>, and JavaScript methods.
+            </p>
+        </section>
+
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- Quick Test Card 1: Standard HTML Link -->
+            <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-6 flex flex-col justify-between hover:border-indigo-500/50 transition-all shadow-xl">
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-indigo-400">Method 1: HTML Tag</span>
+                        <span class="text-xs text-slate-400 bg-slate-700/50 px-2 py-1 rounded">Declarative</span>
+                    </div>
+                    <h2 class="text-xl font-bold text-white mb-2">HTML Standard Link</h2>
+                    <p class="text-sm text-slate-300 mb-4">
+                        Uses the <code class="text-indigo-400 font-mono">target="_blank"</code> attribute directly on an anchor tag.
+                    </p>
+                    
+                    <div class="bg-slate-950 rounded-xl p-4 mb-6 font-mono text-xs sm:text-sm text-indigo-300 overflow-x-auto border border-slate-800">
+                        &lt;<span class="text-rose-400">a</span> <span class="text-amber-300">href</span>=<span class="text-emerald-300">"https://wikipedia.org"</span><br>
+                        &nbsp;&nbsp;<span class="text-amber-300">target</span>=<span class="text-emerald-300">"_blank"</span><br>
+                        &nbsp;&nbsp;<span class="text-amber-300">rel</span>=<span class="text-emerald-300">"noopener noreferrer"</span>&gt;<br>
+                        &nbsp;&nbsp;Visit Wikipedia &lt;/<span class="text-rose-400">a</span>&gt;
+                    </div>
+                </div>
+
+                <!-- Interactive Demo Link -->
+                <div class="pt-4 border-t border-slate-700/50 flex items-center justify-between">
+                    <span class="text-xs text-slate-400">Click to test live:</span>
+                    <a href="https://wikipedia.org" target="_blank" rel="noopener noreferrer" 
+                       class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2 rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-95">
+                        <span>Visit Wikipedia</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-6 flex flex-col justify-between hover:border-violet-500/50 transition-all shadow-xl">
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-violet-400">Method 2: JavaScript</span>
+                        <span class="text-xs text-slate-400 bg-slate-700/50 px-2 py-1 rounded">Programmatic</span>
+                    </div>
+                    <h2 class="text-xl font-bold text-white mb-2">JavaScript window.open()</h2>
+                    <p class="text-sm text-slate-300 mb-4">
+                        Programmatically triggers a new browser tab upon user action or event execution.
+                    </p>
+                    
+                    <div class="bg-slate-950 rounded-xl p-4 mb-6 font-mono text-xs sm:text-sm text-violet-300 overflow-x-auto border border-slate-800">
+                        <span class="text-sky-400">window</span>.<span class="text-amber-300">open</span>(<br>
+                        &nbsp;&nbsp;<span class="text-emerald-300">'https://github.com'</span>,<br>
+                        &nbsp;&nbsp;<span class="text-emerald-300">'_blank'</span>,<br>
+                        &nbsp;&nbsp;<span class="text-emerald-300">'noopener,noreferrer'</span><br>
+                        );
+                    </div>
+                </div>
+
+                <!-- Interactive JS Button -->
+                <div class="pt-4 border-t border-slate-700/50 flex items-center justify-between">
+                    <span class="text-xs text-slate-400">Click to test live:</span>
+                    <button id="jsOpenBtn" 
+                            class="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white font-medium px-4 py-2 rounded-xl transition-all shadow-lg shadow-violet-600/20 active:scale-95">
+                        <span>Open GitHub</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-6 sm:p-8 space-y-6">
+            <div class="flex items-center gap-3">
+                <div class="bg-amber-500/10 text-amber-400 p-2.5 rounded-xl border border-amber-500/20">
+                    <i class="fa-solid fa-shield-halved text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-white">Critical Security: Why Use <code class="text-amber-400 font-mono">rel="noopener noreferrer"</code>?</h2>
+                    <p class="text-sm text-slate-400">Avoid common tab-nabbing vulnerabilities when using <code class="font-mono">target="_blank"</code>.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                    <h3 class="text-sm font-semibold text-indigo-400 mb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-lock text-xs"></i> noopener
+                    </h3>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        Prevents the target page from accessing <code class="text-slate-200 bg-slate-800 px-1 rounded">window.opener</code> property, stopping malicious redirects of your original tab.
+                    </p>
+                </div>
+                <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                    <h3 class="text-sm font-semibold text-violet-400 mb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-eye-slash text-xs"></i> noreferrer
+                    </h3>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        Prevents passing HTTP Referrer header information to the new page for privacy and also implies <code class="text-slate-200 bg-slate-800 px-1 rounded">noopener</code> in older browsers.
+                    </p>
+                </div>
+                <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                    <h3 class="text-sm font-semibold text-emerald-400 mb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-universal-access text-xs"></i> Accessibility
+                    </h3>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        Always inform screen readers and users visually that a link will open in a new window using an icon or accessible text.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section id="generator" class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-6 sm:p-8 shadow-2xl">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-indigo-400"></i> Interactive Link Code Builder
+                </h2>
+                <p class="text-sm text-slate-400">Customize options below to generate clean HTML or JavaScript snippets.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <!-- Controls -->
+                <div class="lg:col-span-5 space-y-4">
+                    <!-- URL Input -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Target URL</label>
+                        <input type="text" id="inputUrl" value="https://example.com" 
+                               class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-200 text-sm focus:outline-none focus:border-indigo-500 transition-colors">
+                    </div>
+
+                    <!-- Link Text Input -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Link / Button Label</label>
+                        <input type="text" id="inputLabel" value="Open External Site" 
+                               class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-200 text-sm focus:outline-none focus:border-indigo-500 transition-colors">
+                    </div>
+
+                    <!-- Toggles -->
+                    <div class="space-y-3 pt-2">
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" id="checkSecurity" checked class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700">
+                            <span class="text-xs font-medium text-slate-300">Include <code class="text-amber-300">rel="noopener noreferrer"</code> (Recommended)</span>
+                        </label>
+                        
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" id="checkIcon" checked class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700">
+                            <span class="text-xs font-medium text-slate-300">Include External Link Icon (FontAwesome)</span>
+                        </label>
+
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" id="checkJs" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700">
+                            <span class="text-xs font-medium text-slate-300">Generate JavaScript (<code class="text-violet-300">window.open</code>)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-7 flex flex-col space-y-4">
+                    <!-- Live Preview Box -->
+                    <div class="bg-slate-900 rounded-xl p-4 border border-slate-700/80">
+                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-3">Live Element Preview</span>
+                        <div id="previewContainer" class="p-6 bg-slate-950/50 rounded-lg border border-slate-800 flex items-center justify-center min-h-[80px]">
+                            <!-- Dynamically injected preview element -->
+                        </div>
+                    </div>
+
+                    <!-- Generated Code Output Box -->
+                    <div class="bg-slate-950 rounded-xl border border-slate-800 flex-1 flex flex-col overflow-hidden">
+                        <div class="bg-slate-900/90 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
+                            <span class="text-xs font-mono text-slate-400" id="codeTypeLabel">HTML Output</span>
+                            <button id="copyBtn" class="text-xs flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg transition-colors">
+                                <i class="fa-regular fa-copy"></i>
+                                <span>Copy Code</span>
+                            </button>
+                        </div>
+                        <pre class="p-4 text-xs sm:text-sm font-mono text-indigo-300 overflow-x-auto flex-1 flex items-center"><code id="codeOutput"></code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <div id="toast" class="fixed bottom-5 right-5 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 translate-y-20 opacity-0 transition-all duration-300 z-50">
+        <i class="fa-solid fa-circle-check text-lg"></i>
+        <span id="toastMsg" class="text-sm font-medium">Copied to clipboard!</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
+        <p>HTML & JS New Tab Guide &bull; Designed for Modern Web Developers</p>
+    </footer>
+
+    <script>
+        // DOM Elements
+        const jsOpenBtn = document.getElementById('jsOpenBtn');
+        const inputUrl = document.getElementById('inputUrl');
+        const inputLabel = document.getElementById('inputLabel');
+        const checkSecurity = document.getElementById('checkSecurity');
+        const checkIcon = document.getElementById('checkIcon');
+        const checkJs = document.getElementById('checkJs');
+        const previewContainer = document.getElementById('previewContainer');
+        const codeOutput = document.getElementById('codeOutput');
+        const codeTypeLabel = document.getElementById('codeTypeLabel');
+        const copyBtn = document.getElementById('copyBtn');
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toastMsg');
+
+        // Method 2: Window.open example event handler
+        jsOpenBtn.addEventListener('click', () => {
+            window.open('https://github.com', '_blank', 'noopener,noreferrer');
+        });
+
+        // Show Toast Notification
+        function showToast(message) {
+            toastMsg.textContent = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('translate-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        function updateGenerator() {
+            const url = inputUrl.value.trim() || 'https://example.com';
+            const label = inputLabel.value.trim() || 'Link Label';
+            const hasSecurity = checkSecurity.checked;
+            const hasIcon = checkIcon.checked;
+            const isJs = checkJs.checked;
+
+            const iconHtml = hasIcon ? ` <i class="fa-solid fa-arrow-up-right-from-square text-xs ml-1"></i>` : '';
+            
+            if (isJs) {
+                codeTypeLabel.textContent = 'JavaScript Code';
+                const securityOption = hasSecurity ? `, 'noopener,noreferrer'` : '';
+                const jsSnippet = `// JavaScript function to open link in a new tab\nfunction openInNewTab() {\n  window.open('${url}', '_blank'${securityOption});\n}`;
+                codeOutput.textContent = jsSnippet;
+
+                // Live Preview for JS Button
+                previewContainer.innerHTML = '';
+                const btn = document.createElement('button');
+                btn.className = 'inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white font-medium px-4 py-2 rounded-xl transition-all shadow-md';
+                btn.innerHTML = `<span>${label}</span>${iconHtml}`;
+                btn.onclick = () => {
+                    if (hasSecurity) {
+                        window.open(url, '_blank', 'noopener,noreferrer');
+                    } else {
+                        window.open(url, '_blank');
+                    }
+                };
+                previewContainer.appendChild(btn);
+
+            } else {
+                codeTypeLabel.textContent = 'HTML Code';
+                const relAttr = hasSecurity ? ' rel="noopener noreferrer"' : '';
+                const htmlSnippet = `<a href="${url}" target="_blank"${relAttr}>\n  ${label}${hasIcon ? '\n  <i class="fas fa-external-link-alt"></i>' : ''}\n</a>`;
+                codeOutput.textContent = htmlSnippet;
+
+                // Live Preview for HTML Link
+                previewContainer.innerHTML = '';
+                const a = document.createElement('a');
+                a.href = url;
+                a.target = '_blank';
+                if (hasSecurity) a.rel = 'noopener noreferrer';
+                a.className = 'inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2 rounded-xl transition-all shadow-md';
+                a.innerHTML = `<span>${label}</span>${iconHtml}`;
+                previewContainer.appendChild(a);
+            }
+        }
+
+        // Copy functionality using standard clipboard execution
+        copyBtn.addEventListener('click', () => {
+            const codeText = codeOutput.textContent;
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = codeText;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('Code copied to clipboard!');
+            } catch (err) {
+                showToast('Failed to copy code.');
+            }
+            document.body.removeChild(tempTextArea);
+        });
+
+        // Event listeners for inputs
+        [inputUrl, inputLabel, checkSecurity, checkIcon, checkJs].forEach(el => {
+            el.addEventListener('input', updateGenerator);
+            el.addEventListener('change', updateGenerator);
+        });
+
+        // Initial setup on window load
+        window.onload = function() {
+            updateGenerator();
+        };
+    </script>
+</body>
+</html>
