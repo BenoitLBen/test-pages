@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Since Page Load</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #090d16;
+            color: #f1f5f9;
+        }
+        .glow-effect {
+            box-shadow: 0 0 50px -10px rgba(14, 165, 233, 0.25);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between items-center p-4 sm:p-6 select-none">
+
+    <!-- Background Ambient Glow -->
+    <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <!-- Header -->
+    <header class="w-full max-w-xl flex items-center justify-between py-4 text-xs text-slate-400 border-b border-slate-800/80">
+        <div class="flex items-center space-x-2">
+            <i class="fa-regular fa-clock text-sky-400"></i>
+            <span class="font-medium text-slate-300 tracking-wide uppercase text-[11px]">Load Timer</span>
+        </div>
+        <div id="status-badge" class="flex items-center space-x-1.5 bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full text-[11px] border border-emerald-500/20">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Live Counter</span>
+        </div>
+    </header>
+
+    <!-- Main Counter Card -->
+    <main class="w-full max-w-xl my-auto py-8">
+        <div class="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 sm:p-10 backdrop-blur-xl glow-effect text-center relative overflow-hidden">
+            
+            <p class="text-xs sm:text-sm font-semibold text-sky-400 uppercase tracking-widest mb-3">
+                This page was loaded
+            </p>
+
+            <!-- Humanized Main Readout -->
+            <h1 id="humanized-time" class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight mb-6 min-h-[44px] flex items-center justify-center">
+                Just now
+            </h1>
+
+            <!-- 2-Second Progress Bar (Visible when loaded < 5s ago) -->
+            <div id="progress-container" class="mb-6 p-4 rounded-2xl bg-slate-950/80 border border-sky-500/30 transition-all duration-500">
+                <div class="flex items-center justify-between text-xs mb-2">
+                    <span class="flex items-center space-x-2 text-sky-400 font-medium">
+                        <i class="fa-solid fa-spinner animate-spin text-xs"></i>
+                        <span id="progress-label">Initializing page session...</span>
+                    </span>
+                    <span id="progress-percent" class="font-mono text-slate-300 font-bold">0%</span>
+                </div>
+                <div class="w-full h-3 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-700/50">
+                    <div id="progress-bar" class="h-full bg-gradient-to-r from-sky-500 via-indigo-500 to-cyan-400 rounded-full transition-all duration-75 ease-out w-0 shadow-lg shadow-sky-500/50"></div>
+                </div>
+            </div>
+
+            <!-- Digital Clock Display Breakdown -->
+            <div class="grid grid-cols-4 gap-2 sm:gap-4 my-6 py-6 border-y border-slate-800/80">
+                <div class="bg-slate-950/60 p-3 sm:p-4 rounded-2xl border border-slate-800">
+                    <div id="unit-hours" class="text-xl sm:text-3xl font-black font-mono text-white">00</div>
+                    <div class="text-[10px] sm:text-xs text-slate-500 font-medium uppercase mt-1">Hours</div>
+                </div>
+                <div class="bg-slate-950/60 p-3 sm:p-4 rounded-2xl border border-slate-800">
+                    <div id="unit-minutes" class="text-xl sm:text-3xl font-black font-mono text-white">00</div>
+                    <div class="text-[10px] sm:text-xs text-slate-500 font-medium uppercase mt-1">Minutes</div>
+                </div>
+                <div class="bg-slate-950/60 p-3 sm:p-4 rounded-2xl border border-slate-800">
+                    <div id="unit-seconds" class="text-xl sm:text-3xl font-black font-mono text-sky-400">00</div>
+                    <div class="text-[10px] sm:text-xs text-slate-500 font-medium uppercase mt-1">Seconds</div>
+                </div>
+                <div class="bg-slate-950/60 p-3 sm:p-4 rounded-2xl border border-slate-800">
+                    <div id="unit-ms" class="text-xl sm:text-3xl font-black font-mono text-slate-400">000</div>
+                    <div class="text-[10px] sm:text-xs text-slate-500 font-medium uppercase mt-1">MS</div>
+                </div>
+            </div>
+
+            <!-- Page Load Timestamp Footer -->
+            <div class="flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-2 mt-4 pt-2">
+                <span class="flex items-center space-x-1.5">
+                    <i class="fa-solid fa-calendar-day text-slate-500"></i>
+                    <span>Loaded on:</span>
+                    <strong id="loaded-timestamp" class="text-slate-200 font-mono">--:--:--</strong>
+                </span>
+                
+                <button id="reload-btn" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition active:scale-95 flex items-center space-x-1.5">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>Reload Page</span>
+                </button>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full max-w-xl text-center py-4 text-xs text-slate-500 border-t border-slate-800/80">
+        Calculated using wall-clock time (`Date.now()`) — immune to background tab throttling.
+    </footer>
+
+    <script>
+        // Store exact load timestamp
+        const loadTimestamp = Date.now();
+        const loadDate = new Date(loadTimestamp);
+
+        // Display initial load timestamp
+        document.getElementById('loaded-timestamp').textContent = loadDate.toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+
+        const elHumanized = document.getElementById('humanized-time');
+        const elHours = document.getElementById('unit-hours');
+        const elMinutes = document.getElementById('unit-minutes');
+        const elSeconds = document.getElementById('unit-seconds');
+        const elMs = document.getElementById('unit-ms');
+        const reloadBtn = document.getElementById('reload-btn');
+
+        const elProgressContainer = document.getElementById('progress-container');
+        const elProgressBar = document.getElementById('progress-bar');
+        const elProgressPercent = document.getElementById('progress-percent');
+        const elProgressLabel = document.getElementById('progress-label');
+
+        /**
+         * Converts milliseconds into human readable relative text
+         */
+        function formatHumanized(totalSeconds) {
+            if (totalSeconds < 5) return "Just now";
+            
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            const parts = [];
+            if (hours > 0) parts.push(`${hours} ${hours === 1 ? 'hour' : 'hours'}`);
+            if (minutes > 0) parts.push(`${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`);
+            if (seconds > 0 || parts.length === 0) parts.push(`${seconds} ${seconds === 1 ? 'second' : 'seconds'}`);
+
+            return parts.join(', ') + ' ago';
+        }
+
+        /**
+         * Main update function.
+         * Computing (Date.now() - loadTimestamp) ensures the counter and progress bar are always exact,
+         * even when the tab is backgrounded, minimized, or restored later.
+         */
+        function updateElapsed() {
+            const now = Date.now();
+            const elapsedMs = Math.max(0, now - loadTimestamp);
+
+            const totalSeconds = Math.floor(elapsedMs / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            const ms = elapsedMs % 1000;
+
+            // Progress Bar Logic for page load < 5s
+            if (elapsedMs < 5000) {
+                elProgressContainer.style.display = 'block';
+                
+                // Calculate progress across a 2-second (2000ms) duration
+                const progressRatio = Math.min(1.0, elapsedMs / 2000);
+                const percent = Math.floor(progressRatio * 100);
+
+                elProgressBar.style.width = `${percent}%`;
+                elProgressPercent.textContent = `${percent}%`;
+
+                if (elapsedMs >= 2000) {
+                    elProgressLabel.textContent = "Page Ready!";
+                    elProgressContainer.classList.remove('border-sky-500/30');
+                    elProgressContainer.classList.add('border-emerald-500/30');
+                } else {
+                    elProgressLabel.textContent = "Initializing page session...";
+                    elProgressContainer.classList.remove('border-emerald-500/30');
+                    elProgressContainer.classList.add('border-sky-500/30');
+                }
+            } else {
+                // Hide progress bar once loaded 5 seconds ago or more
+                elProgressContainer.style.display = 'none';
+            }
+
+            // Update human text
+            elHumanized.textContent = formatHumanized(totalSeconds);
+
+            // Update digital breakdown
+            elHours.textContent = String(hours).padStart(2, '0');
+            elMinutes.textContent = String(minutes).padStart(2, '0');
+            elSeconds.textContent = String(seconds).padStart(2, '0');
+            elMs.textContent = String(ms).padStart(3, '0');
+        }
+
+        // Run continuous updates using timer tick
+        setInterval(updateElapsed, 33); // ~30 FPS refresh rate
+        updateElapsed();
+
+        // Reload button handler
+        reloadBtn.addEventListener('click', () => {
+            window.location.reload();
+        });
+
+        // Instantly update when switching back to tab
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                updateElapsed();
+            }
+        });
+    </script>
+</body>
+</html>
