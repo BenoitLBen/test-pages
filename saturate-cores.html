@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CPU Stress Test - Web Workers</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 0 20px;
+      line-height: 1.5;
+    }
+    .status-card {
+      background-color: #f4f6f8;
+      border: 1px solid #d0d7de;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    .warning {
+      color: #d9381e;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>CPU Web Worker Load Test</h1>
+  <p class="warning">⚠️ Warning: This page spawns busy-loop Web Workers across all detected CPU cores, causing high CPU utilization.</p>
+
+  <div class="status-card">
+    <p><strong>Detected Logical CPU Cores:</strong> <span id="cpu-count">Detecting...</span></p>
+    <p><strong>Active Workers Spawned:</strong> <span id="worker-count">0</span></p>
+    <p><strong>Status:</strong> <span id="status-text">Initializing...</span></p>
+  </div>
+
+  <script>
+    // 1. Detect available CPU cores using navigator.hardwareConcurrency
+    const cpuCount = navigator.hardwareConcurrency || 4;
+    document.getElementById('cpu-count').textContent = cpuCount;
+
+    // 2. Define the Web Worker script (infinite busy loop)
+    const workerCode = `
+      // Infinite loop to saturate CPU execution time
+      while (true) {}
+    `;
+
+    // Create an inline Blob URL for the Web Worker code
+    const blob = new Blob([workerCode], { type: 'application/javascript' });
+    const workerUrl = URL.createObjectURL(blob);
+
+    const workers = [];
+
+    // 3. Spawn one Web Worker per logical CPU core
+    for (let i = 0; i < cpuCount; i++) {
+      const worker = new Worker(workerUrl);
+      workers.push(worker);
+    }
+
+    document.getElementById('worker-count').textContent = workers.length;
+    document.getElementById('status-text').textContent = `Running ${workers.length} busy-loop worker(s).`;
+  </script>
+</body>
+</html>
