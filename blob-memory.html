@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chrome Blob Pinning & Memory Controller Test</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --border: #334155;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 24px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 {
+      margin-top: 0;
+      font-size: 1.75rem;
+      color: var(--accent);
+    }
+    .subtitle {
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .stat-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 4px;
+    }
+    .stat-unit {
+      font-size: 0.9rem;
+      font-weight: 400;
+      color: var(--text-muted);
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 24px;
+      background: var(--card-bg);
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    label {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    select, input {
+      background: #0b1120;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+    button {
+      padding: 9px 16px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.15s;
+    }
+    .btn-primary {
+      background-color: var(--accent);
+      color: #0f172a;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background-color: var(--accent-hover);
+    }
+    .btn-danger {
+      background-color: var(--danger);
+      color: #ffffff;
+    }
+    .btn-danger:hover:not(:disabled) {
+      background-color: var(--danger-hover);
+    }
+    .btn-secondary {
+      background-color: var(--border);
+      color: var(--text);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background-color: #475569;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .guide-box {
+      background: rgba(56, 189, 248, 0.05);
+      border-left: 4px solid var(--accent);
+      padding: 16px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 24px;
+    }
+    .guide-box h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      color: var(--accent);
+    }
+    .guide-box ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+    .guide-box li {
+      margin-bottom: 6px;
+    }
+    code {
+      background: #0b1120;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #38bdf8;
+      font-size: 0.85em;
+    }
+    #log {
+      background: #0b1120;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      height: 220px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #cbd5e1;
+    }
+    .log-entry {
+      margin-bottom: 4px;
+    }
+    .log-err { color: #f87171; }
+    .log-success { color: #4ade80; }
+    .log-info { color: #38bdf8; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Chrome Blob Pinning & Memory Controller Test</h1>
+    <p class="subtitle">
+      Demonstrates whether <code>URL.createObjectURL(blob)</code> can cause unbounded browser memory, 
+      or if Chrome's <code>BlobMemoryController</code> bounds RAM and pages data to disk.
+    </p>
+
+    <div class="guide-box">
+      <h3>How to Observe What Chrome Does</h3>
+      <ul>
+        <li><strong>Step 1:</strong> Open Chrome Task Manager (press <code>Shift + Esc</code>). Find the <strong>"Browser"</strong> row and the <strong>"Tab: Chrome Blob Pinning..."</strong> row.</li>
+        <li><strong>Step 2:</strong> Open <code>chrome://blob-internals</code> in a separate tab.</li>
+        <li><strong>Step 3:</strong> Click <strong>"Start Allocating Blobs"</strong> below.</li>
+        <li><strong>Notice:</strong> The <em>Tab (Renderer)</em> process memory stays low because JS references to the data are released after each yield. The <em>Browser</em> process memory climbs until it hits Chrome's in-memory limit (~2 GB on 64-bit desktop, or much lower on Android), at which point Chrome <strong>pages the blobs to disk files</strong> and stops memory growth!</li>
+      </ul>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="stat-label">Pinned Blobs</div>
+        <div class="stat-value" id="stat-count">0</div>
+      </div>
+      <div class="card">
+        <div class="stat-label">Cumulative Data Pinned</div>
+        <div class="stat-value" id="stat-bytes">0 <span class="stat-unit">MB</span></div>
+      </div>
+      <div class="card">
+        <div class="stat-label">Renderer JS Heap</div>
+        <div class="stat-value" id="stat-jsheap">N/A</div>
+      </div>
+      <div class="card">
+        <div class="stat-label">Status</div>
+        <div class="stat-value" id="stat-status" style="font-size: 1.25rem; color: var(--text-muted);">Idle</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <label>
+        Chunk Size
+        <select id="chunk-size">
+          <option value="5">5 MB</option>
+          <option value="10" selected>10 MB</option>
+          <option value="25">25 MB</option>
+          <option value="50">50 MB</option>
+        </select>
+      </label>
+
+      <label>
+        Yield Interval
+        <select id="interval-ms">
+          <option value="20">20 ms (Fast)</option>
+          <option value="50" selected>50 ms (Normal)</option>
+          <option value="100">100 ms (Gentle)</option>
+        </select>
+      </label>
+
+      <label>
+        Target Cap
+        <select id="target-cap">
+          <option value="500">500 MB</option>
+          <option value="1000">1 GB</option>
+          <option value="2500" selected>2.5 GB (Exceeds 2GB RAM cap)</option>
+          <option value="5000">5 GB (Paging test)</option>
+          <option value="0">Unlimited (Run until failure)</option>
+        </select>
+      </label>
+
+      <div style="margin-left: auto; display: flex; gap: 8px;">
+        <button id="btn-start" class="btn-primary" onclick="toggleTest()">Start Allocating Blobs</button>
+        <button id="btn-verify" class="btn-secondary" onclick="verifyBlobs()" disabled>Verify Blobs (Fetch)</button>
+        <button id="btn-revoke" class="btn-danger" onclick="revokeAll()" disabled>Revoke All URLs</button>
+      </div>
+    </div>
+
+    <h3>Activity Log</h3>
+    <div id="log"></div>
+  </div>
+
+  <script>
+    let running = false;
+    let blobUrls = [];
+    let totalBytes = 0;
+    let count = 0;
+
+    function log(msg, type = '') {
+      const logDiv = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry ' + (type ? 'log-' + type : '');
+      const time = new Date().toLocaleTimeString();
+      entry.textContent = `[${time}] ${msg}`;
+      logDiv.appendChild(entry);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function updateStats() {
+      document.getElementById('stat-count').textContent = count.toLocaleString();
+      const mb = (totalBytes / (1024 * 1024)).toFixed(1);
+      const gb = (totalBytes / (1024 * 1024 * 1024)).toFixed(2);
+      document.getElementById('stat-bytes').innerHTML = totalBytes > 1024 * 1024 * 1024
+        ? `${gb} <span class="stat-unit">GB (${mb} MB)</span>`
+        : `${mb} <span class="stat-unit">MB</span>`;
+
+      if (performance.memory) {
+        const heapMb = (performance.memory.usedJSHeapSize / (1024 * 1024)).toFixed(1);
+        document.getElementById('stat-jsheap').innerHTML = `${heapMb} <span class="stat-unit">MB</span>`;
+      } else {
+        document.getElementById('stat-jsheap').textContent = 'N/A';
+      }
+    }
+
+    async function toggleTest() {
+      if (running) {
+        running = false;
+        document.getElementById('btn-start').textContent = 'Resume Allocating';
+        document.getElementById('stat-status').textContent = 'Paused';
+        document.getElementById('stat-status').style.color = 'var(--warning)';
+        log('Allocation paused by user.', 'info');
+        return;
+      }
+
+      running = true;
+      document.getElementById('btn-start').textContent = 'Pause Allocating';
+      document.getElementById('btn-revoke').disabled = false;
+      document.getElementById('btn-verify').disabled = false;
+      document.getElementById('stat-status').textContent = 'Allocating...';
+      document.getElementById('stat-status').style.color = 'var(--accent)';
+      log('Starting blob allocation loop...', 'info');
+
+      const chunkSizeMb = parseInt(document.getElementById('chunk-size').value, 10);
+      const chunkSizeBytes = chunkSizeMb * 1024 * 1024;
+      const intervalMs = parseInt(document.getElementById('interval-ms').value, 10);
+      const targetCapMb = parseInt(document.getElementById('target-cap').value, 10);
+      const targetCapBytes = targetCapMb > 0 ? targetCapMb * 1024 * 1024 : Infinity;
+
+      try {
+        while (running) {
+          if (totalBytes >= targetCapBytes) {
+            log(`Reached target cap of ${targetCapMb} MB. Halting loop.`, 'success');
+            running = false;
+            document.getElementById('btn-start').textContent = 'Start Allocating Blobs';
+            document.getElementById('stat-status').textContent = 'Target Reached';
+            document.getElementById('stat-status').style.color = 'var(--success)';
+            break;
+          }
+
+          // Allocate payload in renderer
+          const buffer = new Uint8Array(chunkSizeBytes);
+          // Fill buffer to prevent zero-page deduplication
+          for (let i = 0; i < buffer.length; i += 4096) {
+            buffer[i] = (i + count) % 256;
+          }
+
+          const blob = new Blob([buffer], { type: 'application/octet-stream' });
+          const url = URL.createObjectURL(blob);
+          blobUrls.push(url);
+
+          totalBytes += chunkSizeBytes;
+          count++;
+
+          if (count % 5 === 0 || totalBytes >= targetCapBytes) {
+            updateStats();
+            log(`Created ${count} blobs (${(totalBytes / (1024 * 1024)).toFixed(0)} MB pinned). Latest: ${url.substring(0, 42)}...`);
+          }
+
+          // YIELD to event loop: critical for allowing V8 garbage collection
+          // to discard the Uint8Array and the JS Blob wrapper in renderer RAM!
+          await new Promise(resolve => setTimeout(resolve, intervalMs));
+        }
+      } catch (err) {
+        running = false;
+        document.getElementById('btn-start').textContent = 'Start Allocating Blobs';
+        document.getElementById('stat-status').textContent = 'Error / OOM';
+        document.getElementById('stat-status').style.color = 'var(--danger)';
+        log(`Failed: ${err.message}`, 'err');
+      }
+      updateStats();
+    }
+
+    async function verifyBlobs() {
+      if (blobUrls.length === 0) return;
+      log(`Verifying readability of first and last pinned blobs via fetch()...`, 'info');
+
+      const toCheck = [
+        { label: 'First blob', url: blobUrls[0] },
+        { label: 'Latest blob', url: blobUrls[blobUrls.length - 1] }
+      ];
+
+      for (const item of toCheck) {
+        try {
+          const res = await fetch(item.url);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const buf = await res.arrayBuffer();
+          log(`✓ ${item.label} successfully read back: ${buf.byteLength} bytes.`, 'success');
+        } catch (err) {
+          log(`✗ ${item.label} read failed: ${err.message}`, 'err');
+        }
+      }
+    }
+
+    function revokeAll() {
+      running = false;
+      document.getElementById('btn-start').textContent = 'Start Allocating Blobs';
+      document.getElementById('stat-status').textContent = 'Revoked';
+      document.getElementById('stat-status').style.color = 'var(--text-muted)';
+      log(`Revoking ${blobUrls.length} blob URLs with URL.revokeObjectURL()...`, 'info');
+
+      for (const url of blobUrls) {
+        URL.revokeObjectURL(url);
+      }
+      blobUrls = [];
+      const freedMb = (totalBytes / (1024 * 1024)).toFixed(1);
+      totalBytes = 0;
+      count = 0;
+      updateStats();
+
+      document.getElementById('btn-revoke').disabled = true;
+      document.getElementById('btn-verify').disabled = true;
+      log(`All URLs revoked! Browser released ${freedMb} MB of pinned storage quota. Check Chrome Task Manager.`, 'success');
+    }
+
+    setInterval(updateStats, 2000);
+    updateStats();
+  </script>
+</body>
+</html>
