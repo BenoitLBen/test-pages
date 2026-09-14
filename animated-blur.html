@@ -1,0 +1,1777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSS Backdrop-Filter & Blur Animation Test Suite</title>
+  <style>
+    /* ==========================================================================
+       CSS Reset & Design System
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      
+      --ui-bg: rgba(15, 18, 26, 0.78);
+      --ui-border: rgba(255, 255, 255, 0.12);
+      --ui-border-highlight: rgba(255, 255, 255, 0.28);
+      --ui-text-main: #f8fafc;
+      --ui-text-dim: #94a3b8;
+      --ui-text-accent: #38bdf8;
+      --ui-accent-blue: #3b82f6;
+      --ui-accent-hover: #60a5fa;
+      --ui-success: #34d399;
+      --ui-warning: #fbbf24;
+      --ui-danger: #f87171;
+
+      --glass-blur: 28px;
+      --glass-saturate: 135%;
+      --glass-brightness: 105%;
+      --glass-contrast: 100%;
+      --glass-bg-opacity: 0.12;
+      --glass-bg-color: 255, 255, 255;
+      --glass-radius: 20px;
+      --glass-border-width: 1px;
+      --glass-border-color: rgba(255, 255, 255, 0.25);
+      --glass-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #030712;
+      color: var(--ui-text-main);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      user-select: none;
+    }
+
+    /* Fullscreen Animation Canvas Layer */
+    #canvas-container {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: #030712;
+    }
+
+    #anim-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Ambient Subtle Glow Overlay */
+    .ambient-vignette {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+      box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.75);
+    }
+
+    /* Top Navigation / App Bar */
+    header.hud-header {
+      position: absolute;
+      top: 18px;
+      left: 20px;
+      right: 20px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      pointer-events: auto;
+      background: rgba(15, 20, 32, 0.65);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      padding: 8px 16px;
+      border-radius: 9999px;
+      border: 1px solid var(--ui-border);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--ui-success);
+      box-shadow: 0 0 10px var(--ui-success);
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: #fff;
+    }
+
+    .brand-badge {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--ui-text-accent);
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      padding: 2px 7px;
+      border-radius: 999px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      pointer-events: auto;
+    }
+
+    .pill-btn {
+      background: rgba(15, 20, 32, 0.65);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--ui-border);
+      color: var(--ui-text-main);
+      padding: 8px 14px;
+      border-radius: 9999px;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    }
+
+    .pill-btn:hover {
+      background: rgba(30, 41, 59, 0.85);
+      border-color: var(--ui-border-highlight);
+      transform: translateY(-1px);
+    }
+
+    .pill-btn.active {
+      background: var(--ui-accent-blue);
+      border-color: rgba(255, 255, 255, 0.4);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* Diagnostics HUD Bar */
+    .hud-metrics {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      z-index: 100;
+      display: flex;
+      gap: 10px;
+      pointer-events: auto;
+    }
+
+    .metric-pill {
+      background: rgba(15, 20, 32, 0.65);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--ui-border);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--ui-text-dim);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    }
+
+    .metric-pill strong {
+      color: var(--ui-text-main);
+      font-weight: 600;
+    }
+
+    /* ==========================================================================
+       Primary Glassmorphism Showcase Card (The Star of Backdrop-Filter!)
+       ========================================================================== */
+    .glass-card {
+      position: absolute;
+      z-index: 50;
+      width: 480px;
+      border-radius: var(--glass-radius);
+      
+      /* Pure CSS Backdrop Filter with Fallback */
+      background: rgba(var(--glass-bg-color), var(--glass-bg-opacity));
+      backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) brightness(var(--glass-brightness)) contrast(var(--glass-contrast));
+      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) brightness(var(--glass-brightness)) contrast(var(--glass-contrast));
+      
+      border: var(--glass-border-width) solid var(--glass-border-color);
+      box-shadow: var(--glass-shadow);
+      
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      cursor: default;
+      transition: border-radius 0.25s ease, border-color 0.2s ease, box-shadow 0.25s ease;
+      touch-action: none;
+    }
+
+    /* Top specular highlight simulating Apple Vision / macOS glass edge */
+    .glass-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .glass-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: grab;
+      user-select: none;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .glass-header:active {
+      cursor: grabbing;
+    }
+
+    .window-controls {
+      display: flex;
+      gap: 7px;
+    }
+
+    .mac-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 0.5px solid rgba(0, 0, 0, 0.2);
+    }
+    .mac-dot.close { background: #ff5f57; }
+    .mac-dot.min { background: #febc2e; }
+    .mac-dot.zoom { background: #28c840; }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: -0.01em;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .drag-hint {
+      font-size: 11px;
+      color: var(--ui-text-dim);
+      font-family: var(--font-mono);
+      background: rgba(0, 0, 0, 0.25);
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Tab switcher inside the glass card */
+    .glass-tabs {
+      display: flex;
+      padding: 8px 16px 0;
+      gap: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.12);
+    }
+
+    .tab-item {
+      padding: 8px 12px;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--ui-text-dim);
+      border-radius: 6px 6px 0 0;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s ease;
+    }
+
+    .tab-item:hover {
+      color: #fff;
+    }
+
+    .tab-item.active {
+      color: #fff;
+      font-weight: 600;
+      border-bottom-color: var(--ui-text-accent);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    /* Card Content Area */
+    .glass-body {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-height: 480px;
+      overflow-y: auto;
+    }
+
+    .glass-body::-webkit-scrollbar {
+      width: 5px;
+    }
+    .glass-body::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+
+    .tab-panel {
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .tab-panel.active {
+      display: flex;
+    }
+
+    /* Sliders and Controls */
+    .control-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .control-row-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.9);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+    }
+
+    .val-tag {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: var(--ui-text-accent);
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 999px;
+      outline: none;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+      border: 1px solid rgba(0,0,0,0.2);
+      transition: transform 0.1s ease;
+      cursor: grab;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+
+    /* Button Bar Groups */
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .grid-btn {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: rgba(255, 255, 255, 0.85);
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+
+    .grid-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .grid-btn.selected {
+      background: rgba(59, 130, 246, 0.4);
+      border-color: var(--ui-accent-blue);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* Code Snippet Container */
+    .code-box {
+      background: rgba(5, 7, 13, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      line-height: 1.6;
+      color: #38bdf8;
+      position: relative;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Floating Magnifying Loupe Mode */
+    #cursor-loupe {
+      position: absolute;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 60;
+      display: none;
+      transform: translate(-50%, -50%);
+      
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(36px) saturate(180%);
+      -webkit-backdrop-filter: blur(36px) saturate(180%);
+      
+      border: 2px solid rgba(255, 255, 255, 0.45);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3), 0 20px 50px rgba(0,0,0,0.5), inset 0 0 20px rgba(255,255,255,0.2);
+    }
+
+    #cursor-loupe .loupe-crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 14px;
+      height: 14px;
+      transform: translate(-50%, -50%);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      border-radius: 50%;
+    }
+
+    #cursor-loupe .loupe-label {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      font-family: var(--font-mono);
+      background: rgba(0, 0, 0, 0.6);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #38bdf8;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      white-space: nowrap;
+    }
+
+    /* Split Screen Wipe Mode */
+    #split-wipe {
+      position: absolute;
+      inset: 0;
+      z-index: 40;
+      display: none;
+      pointer-events: none;
+    }
+
+    #split-layer {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: 0;
+      width: 50%;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      border-left: 2px solid #ffffff;
+      box-shadow: -8px 0 30px rgba(0, 0, 0, 0.5);
+      pointer-events: auto;
+    }
+
+    #split-handle {
+      position: absolute;
+      top: 50%;
+      left: -18px;
+      width: 36px;
+      height: 36px;
+      transform: translateY(-50%);
+      background: #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: ew-resize;
+      user-select: none;
+    }
+
+    #split-handle svg {
+      width: 18px;
+      height: 18px;
+      fill: #0f172a;
+    }
+
+    .split-badge-left, .split-badge-right {
+      position: absolute;
+      top: 75px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      pointer-events: none;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    }
+
+    .split-badge-left {
+      left: 30px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #94a3b8;
+    }
+
+    .split-badge-right {
+      right: 30px;
+      background: rgba(59, 130, 246, 0.4);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      color: #ffffff;
+    }
+
+    /* Secondary Overlapping Glass Card for Multi-layer Composite Testing */
+    #secondary-card {
+      position: absolute;
+      z-index: 48;
+      width: 320px;
+      height: 200px;
+      top: 35%;
+      left: 55%;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(16px) saturate(160%);
+      -webkit-backdrop-filter: blur(16px) saturate(160%);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+      padding: 20px;
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      color: #fff;
+      cursor: grab;
+    }
+
+    #secondary-card:active {
+      cursor: grabbing;
+    }
+
+    /* Bottom-Right Controls Panel */
+    .bottom-controls {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Tooltip / Toast notification */
+    #toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 18px;
+      border-radius: 999px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 1000;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Fullscreen Canvas Animation Layer -->
+  <div id="canvas-container">
+    <canvas id="anim-canvas"></canvas>
+  </div>
+  <div class="ambient-vignette"></div>
+
+  <!-- Header HUD -->
+  <header class="hud-header">
+    <div class="brand-group">
+      <div class="status-dot" id="supportDot"></div>
+      <span class="brand-title">Backdrop Filter Lab</span>
+      <span class="brand-badge" id="supportBadge">backdrop-filter: supported</span>
+    </div>
+
+    <div class="header-actions">
+      <button class="pill-btn active" id="btnToggleBlur" onclick="toggleBlurMaster()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10"></path>
+        </svg>
+        <span id="btnToggleBlurText">Blur: Enabled</span>
+      </button>
+
+      <button class="pill-btn" id="btnToggleLoupe" onclick="toggleLoupeMode()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        Mouse Loupe
+      </button>
+
+      <button class="pill-btn" id="btnToggleSplit" onclick="toggleSplitMode()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+          <line x1="12" y1="3" x2="12" y2="21"></line>
+        </svg>
+        Split Wipe
+      </button>
+
+      <button class="pill-btn" id="btnToggleOrbit" onclick="toggleAutoOrbit()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(30 12 12)"></ellipse>
+          <circle cx="12" cy="12" r="2"></circle>
+        </svg>
+        Auto-Orbit
+      </button>
+
+      <button class="pill-btn" id="btnToggleLayer" onclick="toggleNestedLayers()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+          <polyline points="2 17 12 22 22 17"></polyline>
+          <polyline points="2 12 12 17 22 12"></polyline>
+        </svg>
+        Dual Layer
+      </button>
+    </div>
+  </header>
+
+  <!-- Diagnostics HUD (Bottom Left) -->
+  <div class="hud-metrics">
+    <div class="metric-pill">
+      FPS: <strong id="fpsVal">60</strong>
+    </div>
+    <div class="metric-pill">
+      Frame: <strong id="frameTimeVal">16.6ms</strong>
+    </div>
+    <div class="metric-pill">
+      DPR: <strong id="dprVal">2.0</strong>
+    </div>
+    <div class="metric-pill">
+      Animation: <strong id="animModeName">Aurora Waves</strong>
+    </div>
+  </div>
+
+  <!-- Bottom Right Quick Animation Selector -->
+  <div class="bottom-controls">
+    <button class="pill-btn" id="btnPlayPause" onclick="togglePlayPause()">
+      <svg id="playPauseIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="6" y="4" width="4" height="16"></rect>
+        <rect x="14" y="4" width="4" height="16"></rect>
+      </svg>
+      <span id="playPauseText">Pause</span>
+    </button>
+    <button class="pill-btn" onclick="nextAnimation()">
+      Next Animation ➔
+    </button>
+  </div>
+
+  <!-- Primary Interactive Glass Showcase Card -->
+  <div class="glass-card" id="mainGlassCard" style="top: 140px; left: 80px;">
+    <!-- Draggable Header -->
+    <div class="glass-header" id="cardDragHandle">
+      <div class="window-controls">
+        <div class="mac-dot close"></div>
+        <div class="mac-dot min"></div>
+        <div class="mac-dot zoom"></div>
+      </div>
+      <div class="card-title">
+        <span>CSS backdrop-filter</span>
+        <span class="drag-hint">DRAG ME</span>
+      </div>
+      <div style="width: 48px; text-align: right;">
+        <span style="font-size: 11px; font-family: var(--font-mono); color: var(--ui-success);">GPU OK</span>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="glass-tabs">
+      <div class="tab-item active" onclick="switchCardTab('filter')">Filter Controls</div>
+      <div class="tab-item" onclick="switchCardTab('presets')">Presets</div>
+      <div class="tab-item" onclick="switchCardTab('animation')">Animation</div>
+      <div class="tab-item" onclick="switchCardTab('css')">Inspect CSS</div>
+    </div>
+
+    <!-- Body -->
+    <div class="glass-body">
+      <!-- TAB 1: Filter Controls -->
+      <div class="tab-panel active" id="tab-panel-filter">
+        <!-- Blur Radius Slider -->
+        <div class="control-row">
+          <div class="control-row-header">
+            <span>Blur Radius (`blur`)</span>
+            <span class="val-tag" id="labelBlurVal">28px</span>
+          </div>
+          <input type="range" id="sliderBlur" min="0" max="80" value="28" oninput="onBlurChange(this.value)">
+        </div>
+
+        <!-- Glass Background Tint Opacity -->
+        <div class="control-row">
+          <div class="control-row-header">
+            <span>Surface Tint Opacity</span>
+            <span class="val-tag" id="labelOpacityVal">12%</span>
+          </div>
+          <input type="range" id="sliderOpacity" min="0" max="70" value="12" oninput="onOpacityChange(this.value)">
+        </div>
+
+        <!-- Saturation Multiplier -->
+        <div class="control-row">
+          <div class="control-row-header">
+            <span>Vibrance / Saturation (`saturate`)</span>
+            <span class="val-tag" id="labelSaturateVal">135%</span>
+          </div>
+          <input type="range" id="sliderSaturate" min="50" max="250" value="135" oninput="onSaturateChange(this.value)">
+        </div>
+
+        <!-- Brightness Multiplier -->
+        <div class="control-row">
+          <div class="control-row-header">
+            <span>Brightness (`brightness`)</span>
+            <span class="val-tag" id="labelBrightnessVal">105%</span>
+          </div>
+          <input type="range" id="sliderBrightness" min="60" max="160" value="105" oninput="onBrightnessChange(this.value)">
+        </div>
+
+        <!-- Corner Radius Slider -->
+        <div class="control-row">
+          <div class="control-row-header">
+            <span>Border Radius (`border-radius`)</span>
+            <span class="val-tag" id="labelRadiusVal">20px</span>
+          </div>
+          <input type="range" id="sliderRadius" min="0" max="80" value="20" oninput="onRadiusChange(this.value)">
+        </div>
+
+        <!-- Tint Color Picker Buttons -->
+        <div class="control-row">
+          <div class="control-row-header">
+            <span>Glass Tint Color</span>
+          </div>
+          <div class="button-grid">
+            <button class="grid-btn selected" id="btnTintWhite" onclick="setTintColor('white')">Pure White</button>
+            <button class="grid-btn" id="btnTintDark" onclick="setTintColor('dark')">Smoked Glass</button>
+            <button class="grid-btn" id="btnTintCyan" onclick="setTintColor('cyan')">Cyan Frost</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: Presets -->
+      <div class="tab-panel" id="tab-panel-presets">
+        <p style="font-size: 12.5px; color: var(--ui-text-dim); line-height: 1.5;">
+          Click any preset to apply curated backdrop-filter recipes commonly used in macOS, iOS, Fluent, and visionOS:
+        </p>
+
+        <div class="button-grid" style="grid-template-columns: repeat(2, 1fr);">
+          <button class="grid-btn" onclick="applyPreset('pureBlur')">
+            <strong>Pure Blur (0% Tint)</strong>
+            <div style="font-size: 10.5px; color: var(--ui-text-dim); margin-top: 3px;">100% transparent backdrop sample</div>
+          </button>
+          <button class="grid-btn selected" onclick="applyPreset('appleGlass')">
+            <strong>macOS Frosted Glass</strong>
+            <div style="font-size: 10.5px; color: var(--ui-text-dim); margin-top: 3px;">blur(28px) + subtle highlight</div>
+          </button>
+          <button class="grid-btn" onclick="applyPreset('cyberGlow')">
+            <strong>Cyberpunk Saturate</strong>
+            <div style="font-size: 10.5px; color: var(--ui-text-dim); margin-top: 3px;">blur(22px) saturate(220%)</div>
+          </button>
+          <button class="grid-btn" onclick="applyPreset('denseFrost')">
+            <strong>Heavy Frosted Mist</strong>
+            <div style="font-size: 10.5px; color: var(--ui-text-dim); margin-top: 3px;">blur(64px) ultra-diffuse</div>
+          </button>
+          <button class="grid-btn" onclick="applyPreset('smokedObsidian')">
+            <strong>Smoked Obsidian</strong>
+            <div style="font-size: 10.5px; color: var(--ui-text-dim); margin-top: 3px;">Dark tinted glass blur</div>
+          </button>
+          <button class="grid-btn" onclick="applyPreset('subtleClean')">
+            <strong>Subtle Clean (10px)</strong>
+            <div style="font-size: 10.5px; color: var(--ui-text-dim); margin-top: 3px;">Light blur for text legibility</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB 3: Animation Controls -->
+      <div class="tab-panel" id="tab-panel-animation">
+        <div class="control-row">
+          <div class="control-row-header">
+            <span>Visual Scene</span>
+          </div>
+          <div class="button-grid" style="grid-template-columns: repeat(2, 1fr);">
+            <button class="grid-btn selected" id="btnScene1" onclick="setScene(0)">1. Aurora Waves</button>
+            <button class="grid-btn" id="btnScene2" onclick="setScene(1)">2. Cyber Geometry</button>
+            <button class="grid-btn" id="btnScene3" onclick="setScene(2)">3. Particle Vortex</button>
+            <button class="grid-btn" id="btnScene4" onclick="setScene(3)">4. Prismatic Metaballs</button>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="control-row-header">
+            <span>Animation Speed</span>
+            <span class="val-tag" id="labelSpeedVal">1.0x</span>
+          </div>
+          <input type="range" id="sliderSpeed" min="10" max="300" value="100" oninput="onSpeedChange(this.value)">
+        </div>
+
+        <div class="control-row">
+          <div class="control-row-header">
+            <span>Scene Complexity / Detail</span>
+            <span class="val-tag" id="labelDetailVal">Normal</span>
+          </div>
+          <input type="range" id="sliderDetail" min="1" max="3" value="2" oninput="onDetailChange(this.value)">
+        </div>
+      </div>
+
+      <!-- TAB 4: Inspect Generated CSS -->
+      <div class="tab-panel" id="tab-panel-css">
+        <div style="position: relative;">
+          <div class="code-box" id="cssCodeOutput">backdrop-filter: blur(28px) saturate(135%) brightness(105%);
+-webkit-backdrop-filter: blur(28px) saturate(135%) brightness(105%);
+background: rgba(255, 255, 255, 0.12);
+border-radius: 20px;
+border: 1px solid rgba(255, 255, 255, 0.25);</div>
+          <button class="copy-btn" onclick="copyCss()">Copy CSS</button>
+        </div>
+        <p style="font-size: 11.5px; color: var(--ui-text-dim); line-height: 1.5;">
+          Chromium uses hardware-accelerated delegated compositing (via CoreAnimation on macOS or Skia GPU shaders) to rasterize this backdrop layer directly from underlying surface textures at zero copy overhead.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mouse Cursor Loupe (Magnifying Glass) -->
+  <div id="cursor-loupe">
+    <div class="loupe-crosshair"></div>
+    <div class="loupe-label" id="loupeLabel">blur(36px)</div>
+  </div>
+
+  <!-- Split Wipe Comparison Container -->
+  <div id="split-wipe">
+    <div class="split-badge-left">UNFILTERED (SHARP)</div>
+    <div class="split-badge-right">BACKDROP-FILTER: BLUR</div>
+    <div id="split-layer">
+      <div id="split-handle">
+        <svg viewBox="0 0 24 24">
+          <path d="M8 7l-5 5 5 5V7zm8 0v10l5-5-5-5z"></path>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Secondary Overlapping Glass Card -->
+  <div id="secondary-card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #38bdf8;">Nested Layer #2</span>
+      <span style="font-size: 10px; font-family: var(--font-mono); background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px;">blur(16px)</span>
+    </div>
+    <p style="font-size: 13px; line-height: 1.5; color: rgba(255,255,255,0.95); text-shadow: 0 1px 3px rgba(0,0,0,0.7);">
+      This card tests dual-layer backdrop composite blending. Drag either card over the other to see recursive backdrop filtration in action!
+    </p>
+    <div style="font-size: 11px; font-family: var(--font-mono); color: #cbd5e1;">
+      Coordinates: <span id="secCoord">x: 55%, y: 35%</span>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast">CSS copied to clipboard!</div>
+
+  <!-- ==========================================================================
+       Javascript Application & Canvas Engine
+       ========================================================================== -->
+  <script>
+    /* --------------------------------------------------------------------------
+       1. Support Detection & Global State
+       -------------------------------------------------------------------------- */
+    const isBackdropFilterSupported = 
+      CSS.supports('backdrop-filter', 'blur(10px)') || 
+      CSS.supports('-webkit-backdrop-filter', 'blur(10px)');
+
+    const supportBadge = document.getElementById('supportBadge');
+    const supportDot = document.getElementById('supportDot');
+    if (!isBackdropFilterSupported) {
+      supportBadge.textContent = 'backdrop-filter: NOT supported';
+      supportBadge.style.color = 'var(--ui-danger)';
+      supportBadge.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+      supportDot.style.background = 'var(--ui-danger)';
+      supportDot.style.boxShadow = '0 0 10px var(--ui-danger)';
+    }
+
+    const state = {
+      blur: 28,
+      opacity: 0.12,
+      saturate: 135,
+      brightness: 105,
+      contrast: 100,
+      radius: 20,
+      tintColor: '255, 255, 255',
+      blurEnabled: true,
+      
+      // Mode toggles
+      loupeMode: false,
+      splitMode: false,
+      autoOrbit: false,
+      nestedLayers: false,
+      isPaused: false,
+
+      // Animation parameters
+      currentScene: 0,
+      speedMultiplier: 1.0,
+      detailLevel: 2,
+      time: 0
+    };
+
+    /* --------------------------------------------------------------------------
+       2. Canvas Graphics Engine (Rich, Hypnotic Animations)
+       -------------------------------------------------------------------------- */
+    const canvas = document.getElementById('anim-canvas');
+    const ctx = canvas.getContext('2d');
+    let width = 0;
+    let height = 0;
+    let dpr = window.devicePixelRatio || 1;
+
+    function resizeCanvas() {
+      dpr = window.devicePixelRatio || 1;
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = width + 'px';
+      canvas.style.height = height + 'px';
+      ctx.setTransform(1, 0, 0, 1, 0, 0); // reset
+      ctx.scale(dpr, dpr);
+      document.getElementById('dprVal').textContent = dpr.toFixed(1);
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    /* Scene 1: Chromatic Aurora Waves & Energy Strands */
+    function renderAuroraWaves(t) {
+      // Clear with deep cosmic twilight background
+      const bgGrad = ctx.createLinearGradient(0, 0, width, height);
+      bgGrad.addColorStop(0, '#030712');
+      bgGrad.addColorStop(0.5, '#0b0f24');
+      bgGrad.addColorStop(1, '#050515');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, width, height);
+
+      // Render floating luminous bokeh orbs in background
+      const orbs = [
+        { x: width * 0.25 + Math.cos(t * 0.4) * 120, y: height * 0.35 + Math.sin(t * 0.5) * 80, r: 240, c: 'rgba(236, 72, 153, 0.45)' },
+        { x: width * 0.7 + Math.sin(t * 0.3) * 140, y: height * 0.6 + Math.cos(t * 0.4) * 100, r: 280, c: 'rgba(59, 130, 246, 0.45)' },
+        { x: width * 0.5 + Math.sin(t * 0.6) * 100, y: height * 0.2 + Math.cos(t * 0.3) * 70, r: 200, c: 'rgba(16, 185, 129, 0.4)' },
+        { x: width * 0.85 + Math.cos(t * 0.5) * 90, y: height * 0.25 + Math.sin(t * 0.3) * 60, r: 220, c: 'rgba(245, 158, 11, 0.35)' }
+      ];
+
+      for (let orb of orbs) {
+        const radGrad = ctx.createRadialGradient(orb.x, orb.y, 10, orb.x, orb.y, orb.r);
+        radGrad.addColorStop(0, orb.c);
+        radGrad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = radGrad;
+        ctx.beginPath();
+        ctx.arc(orb.x, orb.y, orb.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Draw undulating harmonic sine ribbons with crisp color gradients
+      const ribbons = [
+        { amp: 85, freq: 0.003, speed: 0.9, yBase: height * 0.45, color1: '#06b6d4', color2: '#3b82f6', width: 3.5 },
+        { amp: 110, freq: 0.0025, speed: 0.7, yBase: height * 0.52, color1: '#ec4899', color2: '#8b5cf6', width: 4.0 },
+        { amp: 70, freq: 0.004, speed: 1.1, yBase: height * 0.38, color1: '#10b981', color2: '#06b6d4', width: 2.5 },
+        { amp: 95, freq: 0.0035, speed: 0.85, yBase: height * 0.62, color1: '#f59e0b', color2: '#ef4444', width: 3.0 },
+        { amp: 130, freq: 0.002, speed: 0.6, yBase: height * 0.48, color1: '#a855f7', color2: '#3b82f6', width: 4.5 }
+      ];
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+
+      for (let i = 0; i < ribbons.length; i++) {
+        const r = ribbons[i];
+        ctx.beginPath();
+        const step = 6;
+        for (let x = 0; x <= width + step; x += step) {
+          const y = r.yBase + 
+            Math.sin(x * r.freq + t * r.speed) * r.amp +
+            Math.cos(x * (r.freq * 1.6) - t * (r.speed * 0.5)) * (r.amp * 0.4);
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+
+        const grad = ctx.createLinearGradient(0, 0, width, 0);
+        grad.addColorStop(0, r.color1);
+        grad.addColorStop(0.5, r.color2);
+        grad.addColorStop(1, r.color1);
+
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = r.width;
+        ctx.shadowColor = r.color1;
+        ctx.shadowBlur = 18;
+        ctx.stroke();
+
+        // Fill subtle translucent under-ribbon for rich light volume
+        ctx.lineTo(width, height);
+        ctx.lineTo(0, height);
+        ctx.closePath();
+        const fillGrad = ctx.createLinearGradient(0, r.yBase, 0, height);
+        fillGrad.addColorStop(0, 'rgba(59, 130, 246, 0.08)');
+        fillGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = fillGrad;
+        ctx.shadowBlur = 0;
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // Sharp fine geometric constellation grid markers in background
+      drawGeometricAccents(t);
+    }
+
+    /* Scene 2: Cyber Geometry & Rotating Nested Polyhedra */
+    function renderCyberGeometry(t) {
+      ctx.fillStyle = '#060913';
+      ctx.fillRect(0, 0, width, height);
+
+      const cx = width / 2;
+      const cy = height / 2;
+
+      // Rotating dashed concentric rings
+      ctx.save();
+      ctx.translate(cx, cy);
+
+      const rings = [
+        { r: 180, dash: [8, 12], speed: 0.3, col: '#38bdf8' },
+        { r: 260, dash: [24, 8, 4, 8], speed: -0.2, col: '#818cf8' },
+        { r: 340, dash: [40, 16], speed: 0.15, col: '#f43f5e' },
+        { r: 420, dash: [10, 20, 60, 20], speed: -0.1, col: '#10b981' }
+      ];
+
+      for (let ring of rings) {
+        ctx.save();
+        ctx.rotate(t * ring.speed);
+        ctx.strokeStyle = ring.col;
+        ctx.lineWidth = 2;
+        ctx.setLineDash(ring.dash);
+        ctx.shadowColor = ring.col;
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(0, 0, ring.r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 3D Rotating Cube / Polyhedron Wireframe
+      render3DWireframe(t, 0, 0, 140);
+      render3DWireframe(t * -1.2, -width * 0.28, -height * 0.15, 80);
+      render3DWireframe(t * 1.1, width * 0.28, height * 0.15, 90);
+
+      ctx.restore();
+
+      // Sharp typography banner behind glass to test text rendering under blur
+      renderFloatingTypography(t);
+    }
+
+    function render3DWireframe(t, ox, oy, size) {
+      ctx.save();
+      ctx.translate(ox, oy);
+
+      const rotX = t * 0.6;
+      const rotY = t * 0.8;
+      const rotZ = t * 0.4;
+
+      // Cube 8 vertices
+      const s = size;
+      const verts = [
+        [-s, -s, -s], [s, -s, -s], [s, s, -s], [-s, s, -s],
+        [-s, -s, s],  [s, -s, s],  [s, s, s],  [-s, s, s]
+      ];
+
+      const edges = [
+        [0,1],[1,2],[2,3],[3,0],
+        [4,5],[5,6],[6,7],[7,4],
+        [0,4],[1,5],[2,6],[3,7]
+      ];
+
+      const projected = verts.map(v => {
+        let x = v[0], y = v[1], z = v[2];
+
+        // rotate Y
+        let x1 = x * Math.cos(rotY) + z * Math.sin(rotY);
+        let z1 = -x * Math.sin(rotY) + z * Math.cos(rotY);
+        // rotate X
+        let y2 = y * Math.cos(rotX) - z1 * Math.sin(rotX);
+        let z2 = y * Math.sin(rotX) + z1 * Math.cos(rotX);
+        // rotate Z
+        let x3 = x1 * Math.cos(rotZ) - y2 * Math.sin(rotZ);
+        let y3 = x1 * Math.sin(rotZ) + y2 * Math.cos(rotZ);
+
+        const fov = 400;
+        const scale = fov / (fov + z2 + 250);
+        return { x: x3 * scale, y: y3 * scale, z: z2 };
+      });
+
+      // Draw edges
+      ctx.lineWidth = 2.5;
+      for (let e of edges) {
+        const p1 = projected[e[0]];
+        const p2 = projected[e[1]];
+        const grad = ctx.createLinearGradient(p1.x, p1.y, p2.x, p2.y);
+        grad.addColorStop(0, '#38bdf8');
+        grad.addColorStop(1, '#f43f5e');
+        ctx.strokeStyle = grad;
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      }
+
+      // Draw vertex nodes
+      for (let p of projected) {
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    /* Scene 3: Bioluminescent Particle Vortex Field */
+    const particles = [];
+    const NUM_PARTICLES = 180;
+
+    for (let i = 0; i < NUM_PARTICLES; i++) {
+      particles.push({
+        x: Math.random() * 2000,
+        y: Math.random() * 1200,
+        vx: (Math.random() - 0.5) * 1.5,
+        vy: (Math.random() - 0.5) * 1.5,
+        radius: Math.random() * 3.5 + 1.5,
+        hue: Math.random() * 80 + 160,
+        pulse: Math.random() * Math.PI * 2
+      });
+    }
+
+    function renderParticleVortex(t) {
+      ctx.fillStyle = 'rgba(4, 7, 18, 0.4)';
+      ctx.fillRect(0, 0, width, height);
+
+      const cx = width / 2;
+      const cy = height / 2;
+
+      // Draw subtle orbital guide circles
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.08)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 280, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 140, 0, Math.PI * 2);
+      ctx.stroke();
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+
+        // Swirl vortex physics around center
+        const dx = p.x - cx;
+        const dy = p.y - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        const angle = Math.atan2(dy, dx) + 0.015;
+        const targetDist = dist + Math.sin(t + i) * 0.5;
+
+        p.x = cx + Math.cos(angle) * targetDist + p.vx;
+        p.y = cy + Math.sin(angle) * targetDist + p.vy;
+
+        // Wrap edges
+        if (p.x < -50) p.x = width + 50;
+        if (p.x > width + 50) p.x = -50;
+        if (p.y < -50) p.y = height + 50;
+        if (p.y > height + 50) p.y = -50;
+
+        const currentRadius = p.radius + Math.sin(t * 3 + p.pulse) * 1.0;
+        const color = `hsl(${p.hue + Math.sin(t) * 40}, 95%, 65%)`;
+
+        ctx.fillStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, Math.max(1, currentRadius), 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw connecting filaments between close neighbors
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const ndx = p.x - p2.x;
+          const ndy = p.y - p2.y;
+          const ndist = Math.sqrt(ndx * ndx + ndy * ndy);
+          if (ndist < 90) {
+            ctx.strokeStyle = `rgba(56, 189, 248, ${ (1 - ndist / 90) * 0.45 })`;
+            ctx.lineWidth = 1;
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+          }
+        }
+      }
+    }
+
+    /* Scene 4: Prismatic Liquid Blobs (Lava Metaballs) */
+    const metaballs = [
+      { x: 0.3, y: 0.4, r: 160, color1: '#ff007f', color2: '#7928ca', speedX: 0.5, speedY: 0.7 },
+      { x: 0.65, y: 0.35, r: 180, color1: '#00dfd8', color2: '#007cf0', speedX: -0.6, speedY: 0.5 },
+      { x: 0.45, y: 0.7, r: 210, color1: '#ff4d4d', color2: '#f9cb28', speedX: 0.4, speedY: -0.6 },
+      { x: 0.75, y: 0.75, r: 150, color1: '#7928ca', color2: '#4338ca', speedX: -0.5, speedY: -0.4 },
+      { x: 0.2, y: 0.8, r: 170, color1: '#10b981', color2: '#06b6d4', speedX: 0.7, speedY: 0.3 }
+    ];
+
+    function renderPrismaticMetaballs(t) {
+      ctx.fillStyle = '#080c18';
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+
+      for (let b of metaballs) {
+        const bx = width * b.x + Math.sin(t * b.speedX) * 160;
+        const by = height * b.y + Math.cos(t * b.speedY) * 120;
+        const radGrad = ctx.createRadialGradient(bx, by, 10, bx, by, b.r);
+        radGrad.addColorStop(0, b.color1);
+        radGrad.addColorStop(0.6, b.color2);
+        radGrad.addColorStop(1, 'rgba(0,0,0,0)');
+
+        ctx.fillStyle = radGrad;
+        ctx.beginPath();
+        ctx.arc(bx, by, b.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+
+      // Floating crisp crosshairs and target rings
+      drawGeometricAccents(t);
+    }
+
+    /* Helper: High-frequency lines, grid ticks, and typography */
+    function drawGeometricAccents(t) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+      ctx.lineWidth = 1;
+
+      // Center crosshair
+      const cx = width / 2;
+      const cy = height / 2;
+      ctx.beginPath();
+      ctx.moveTo(cx - 30, cy);
+      ctx.lineTo(cx + 30, cy);
+      ctx.moveTo(cx, cy - 30);
+      ctx.lineTo(cx, cy + 30);
+      ctx.stroke();
+
+      // Precision tick marks along bottom
+      const spacing = 40;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+      ctx.font = '10px monospace';
+      for (let x = 60; x < width - 60; x += spacing) {
+        ctx.fillRect(x, height - 35, 1, 6);
+      }
+      ctx.restore();
+    }
+
+    function renderFloatingTypography(t) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.font = '700 36px var(--font-sans)';
+      ctx.letterSpacing = '-0.03em';
+      ctx.shadowColor = 'rgba(0,0,0,0.8)';
+      ctx.shadowBlur = 10;
+      
+      const x = width * 0.5 - 220 + Math.sin(t * 0.4) * 40;
+      const y = height * 0.48 + Math.cos(t * 0.5) * 30;
+      ctx.fillText('CRISP TYPOGRAPHY', x, y);
+      
+      ctx.font = '500 16px var(--font-mono)';
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillText('HIGH-FREQUENCY TEXTURE UNDER BLUR', x + 4, y + 32);
+      ctx.restore();
+    }
+
+    /* --------------------------------------------------------------------------
+       3. Main Render Loop & FPS Monitor
+       -------------------------------------------------------------------------- */
+    let lastFrameTime = performance.now();
+    let frameCount = 0;
+    let fpsTimer = performance.now();
+    const fpsElem = document.getElementById('fpsVal');
+    const frameTimeElem = document.getElementById('frameTimeVal');
+
+    const sceneNames = [
+      'Aurora Waves',
+      'Cyber Geometry',
+      'Particle Vortex',
+      'Prismatic Metaballs'
+    ];
+
+    function animLoop(now) {
+      const deltaMs = now - lastFrameTime;
+      lastFrameTime = now;
+
+      // Update FPS counter every 500ms
+      frameCount++;
+      if (now - fpsTimer >= 500) {
+        const fps = Math.round((frameCount * 1000) / (now - fpsTimer));
+        fpsElem.textContent = fps;
+        frameTimeElem.textContent = (deltaMs).toFixed(1) + 'ms';
+        frameCount = 0;
+        fpsTimer = now;
+      }
+
+      if (!state.isPaused) {
+        state.time += (deltaMs * 0.001) * state.speedMultiplier;
+      }
+
+      // Render the currently selected scene
+      switch (state.currentScene) {
+        case 0: renderAuroraWaves(state.time); break;
+        case 1: renderCyberGeometry(state.time); break;
+        case 2: renderParticleVortex(state.time); break;
+        case 3: renderPrismaticMetaballs(state.time); break;
+      }
+
+      // If Auto-Orbit is active, calculate elegant Lissajous figure motion
+      if (state.autoOrbit) {
+        const card = document.getElementById('mainGlassCard');
+        const cx = (width - 480) / 2;
+        const cy = (height - 380) / 2;
+        const ox = cx + Math.sin(state.time * 0.7) * (width * 0.22);
+        const oy = cy + Math.cos(state.time * 0.9) * (height * 0.18);
+        card.style.left = `${ox}px`;
+        card.style.top = `${oy}px`;
+      }
+
+      requestAnimationFrame(animLoop);
+    }
+    requestAnimationFrame(animLoop);
+
+    /* --------------------------------------------------------------------------
+       4. UI Interactivity & CSS Application
+       -------------------------------------------------------------------------- */
+    const mainCard = document.getElementById('mainGlassCard');
+    const secondaryCard = document.getElementById('secondary-card');
+    const splitLayer = document.getElementById('split-layer');
+
+    function applyStyles() {
+      const b = state.blurEnabled ? `${state.blur}px` : '0px';
+      const sat = `${state.saturate}%`;
+      const bright = `${state.brightness}%`;
+      const cont = `${state.contrast}%`;
+      const bg = `rgba(${state.tintColor}, ${state.opacity})`;
+      const rad = `${state.radius}px`;
+
+      const filterVal = state.blurEnabled 
+        ? `blur(${b}) saturate(${sat}) brightness(${bright}) contrast(${cont})`
+        : 'none';
+
+      mainCard.style.backdropFilter = filterVal;
+      mainCard.style.webkitBackdropFilter = filterVal;
+      mainCard.style.background = bg;
+      mainCard.style.borderRadius = rad;
+
+      if (splitLayer) {
+        splitLayer.style.backdropFilter = filterVal;
+        splitLayer.style.webkitBackdropFilter = filterVal;
+      }
+
+      // Update CSS inspection snippet
+      const cssString = `backdrop-filter: ${filterVal};
+-webkit-backdrop-filter: ${filterVal};
+background: ${bg};
+border-radius: ${rad};
+border: 1px solid rgba(255, 255, 255, 0.25);`;
+      document.getElementById('cssCodeOutput').textContent = cssString;
+    }
+
+    function onBlurChange(val) {
+      state.blur = parseInt(val, 10);
+      document.getElementById('labelBlurVal').textContent = `${state.blur}px`;
+      applyStyles();
+    }
+
+    function onOpacityChange(val) {
+      state.opacity = parseInt(val, 10) / 100;
+      document.getElementById('labelOpacityVal').textContent = `${val}%`;
+      applyStyles();
+    }
+
+    function onSaturateChange(val) {
+      state.saturate = parseInt(val, 10);
+      document.getElementById('labelSaturateVal').textContent = `${val}%`;
+      applyStyles();
+    }
+
+    function onBrightnessChange(val) {
+      state.brightness = parseInt(val, 10);
+      document.getElementById('labelBrightnessVal').textContent = `${val}%`;
+      applyStyles();
+    }
+
+    function onRadiusChange(val) {
+      state.radius = parseInt(val, 10);
+      document.getElementById('labelRadiusVal').textContent = `${val}%`;
+      applyStyles();
+    }
+
+    function setTintColor(color) {
+      document.querySelectorAll('#tab-panel-filter .grid-btn').forEach(b => b.classList.remove('selected'));
+      if (color === 'white') {
+        state.tintColor = '255, 255, 255';
+        document.getElementById('btnTintWhite').classList.add('selected');
+      } else if (color === 'dark') {
+        state.tintColor = '15, 23, 42';
+        document.getElementById('btnTintDark').classList.add('selected');
+      } else if (color === 'cyan') {
+        state.tintColor = '6, 182, 212';
+        document.getElementById('btnTintCyan').classList.add('selected');
+      }
+      applyStyles();
+    }
+
+    function toggleBlurMaster() {
+      state.blurEnabled = !state.blurEnabled;
+      const btn = document.getElementById('btnToggleBlur');
+      const txt = document.getElementById('btnToggleBlurText');
+      if (state.blurEnabled) {
+        btn.classList.add('active');
+        txt.textContent = 'Blur: Enabled';
+      } else {
+        btn.classList.remove('active');
+        txt.textContent = 'Blur: Bypass';
+      }
+      applyStyles();
+    }
+
+    function switchCardTab(tabKey) {
+      document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+
+      const tabs = Array.from(document.querySelectorAll('.tab-item'));
+      const targetTab = tabs.find(t => t.textContent.toLowerCase().includes(tabKey));
+      if (targetTab) targetTab.classList.add('active');
+
+      const targetPanel = document.getElementById(`tab-panel-${tabKey}`);
+      if (targetPanel) targetPanel.classList.add('active');
+    }
+
+    /* Preset selector */
+    function applyPreset(preset) {
+      if (preset === 'pureBlur') {
+        state.blur = 35;
+        state.opacity = 0;
+        state.saturate = 100;
+        state.brightness = 100;
+        state.radius = 16;
+        state.tintColor = '255, 255, 255';
+      } else if (preset === 'appleGlass') {
+        state.blur = 28;
+        state.opacity = 0.12;
+        state.saturate = 135;
+        state.brightness = 105;
+        state.radius = 20;
+        state.tintColor = '255, 255, 255';
+      } else if (preset === 'cyberGlow') {
+        state.blur = 22;
+        state.opacity = 0.15;
+        state.saturate = 220;
+        state.brightness = 115;
+        state.radius = 24;
+        state.tintColor = '56, 189, 248';
+      } else if (preset === 'denseFrost') {
+        state.blur = 64;
+        state.opacity = 0.28;
+        state.saturate = 120;
+        state.brightness = 110;
+        state.radius = 24;
+        state.tintColor = '255, 255, 255';
+      } else if (preset === 'smokedObsidian') {
+        state.blur = 32;
+        state.opacity = 0.45;
+        state.saturate = 110;
+        state.brightness = 85;
+        state.radius = 16;
+        state.tintColor = '15, 23, 42';
+      } else if (preset === 'subtleClean') {
+        state.blur = 10;
+        state.opacity = 0.08;
+        state.saturate = 105;
+        state.brightness = 100;
+        state.radius = 12;
+        state.tintColor = '255, 255, 255';
+      }
+
+      // Sync slider UI controls
+      document.getElementById('sliderBlur').value = state.blur;
+      document.getElementById('labelBlurVal').textContent = `${state.blur}px`;
+      document.getElementById('sliderOpacity').value = Math.round(state.opacity * 100);
+      document.getElementById('labelOpacityVal').textContent = `${Math.round(state.opacity * 100)}%`;
+      document.getElementById('sliderSaturate').value = state.saturate;
+      document.getElementById('labelSaturateVal').textContent = `${state.saturate}%`;
+      document.getElementById('sliderBrightness').value = state.brightness;
+      document.getElementById('labelBrightnessVal').textContent = `${state.brightness}%`;
+      document.getElementById('sliderRadius').value = state.radius;
+      document.getElementById('labelRadiusVal').textContent = `${state.radius}px`;
+
+      applyStyles();
+      showToast(`Applied preset: ${preset}`);
+    }
+
+    /* Scene Controls */
+    function setScene(idx) {
+      state.currentScene = idx;
+      document.querySelectorAll('#tab-panel-animation .grid-btn').forEach((b, i) => {
+        b.classList.toggle('selected', i === idx);
+      });
+      document.getElementById('animModeName').textContent = sceneNames[idx];
+    }
+
+    function nextAnimation() {
+      setScene((state.currentScene + 1) % sceneNames.length);
+      showToast(`Switched to: ${sceneNames[state.currentScene]}`);
+    }
+
+    function onSpeedChange(val) {
+      state.speedMultiplier = parseInt(val, 10) / 100;
+      document.getElementById('labelSpeedVal').textContent = `${state.speedMultiplier.toFixed(1)}x`;
+    }
+
+    function onDetailChange(val) {
+      state.detailLevel = parseInt(val, 10);
+      const labels = ['Low', 'Normal', 'High'];
+      document.getElementById('labelDetailVal').textContent = labels[state.detailLevel - 1];
+    }
+
+    function togglePlayPause() {
+      state.isPaused = !state.isPaused;
+      const btnTxt = document.getElementById('playPauseText');
+      const icon = document.getElementById('playPauseIcon');
+      if (state.isPaused) {
+        btnTxt.textContent = 'Play';
+        icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"></polygon>';
+      } else {
+        btnTxt.textContent = 'Pause';
+        icon.innerHTML = '<rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>';
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       5. Interactive Modes: Loupe, Split Wipe, Auto Orbit, Dual Layer
+       -------------------------------------------------------------------------- */
+    const loupe = document.getElementById('cursor-loupe');
+    const splitWipe = document.getElementById('split-wipe');
+
+    function toggleLoupeMode() {
+      state.loupeMode = !state.loupeMode;
+      document.getElementById('btnToggleLoupe').classList.toggle('active', state.loupeMode);
+      loupe.style.display = state.loupeMode ? 'block' : 'none';
+      if (state.loupeMode) {
+        showToast('Mouse Loupe: Move cursor across screen to magnify blur');
+      }
+    }
+
+    window.addEventListener('mousemove', (e) => {
+      if (state.loupeMode) {
+        loupe.style.left = e.clientX + 'px';
+        loupe.style.top = e.clientY + 'px';
+      }
+    });
+
+    function toggleSplitMode() {
+      state.splitMode = !state.splitMode;
+      document.getElementById('btnToggleSplit').classList.toggle('active', state.splitMode);
+      splitWipe.style.display = state.splitMode ? 'block' : 'none';
+      if (state.splitMode) {
+        showToast('Split Wipe: Drag divider to compare filtered vs unblurred');
+      }
+    }
+
+    /* Split Slider Dragging */
+    const splitHandle = document.getElementById('split-handle');
+    let isDraggingSplit = false;
+
+    splitHandle.addEventListener('mousedown', (e) => {
+      isDraggingSplit = true;
+      e.stopPropagation();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDraggingSplit) return;
+      const splitPct = Math.max(5, Math.min(95, ((width - e.clientX) / width) * 100));
+      splitLayer.style.width = splitPct + '%';
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDraggingSplit = false;
+    });
+
+    function toggleAutoOrbit() {
+      state.autoOrbit = !state.autoOrbit;
+      document.getElementById('btnToggleOrbit').classList.toggle('active', state.autoOrbit);
+      if (state.autoOrbit) {
+        showToast('Auto-Orbit: Glass card floating smoothly over the animation');
+      }
+    }
+
+    function toggleNestedLayers() {
+      state.nestedLayers = !state.nestedLayers;
+      document.getElementById('btnToggleLayer').classList.toggle('active', state.nestedLayers);
+      secondaryCard.style.display = state.nestedLayers ? 'flex' : 'none';
+      if (state.nestedLayers) {
+        showToast('Dual Layer: Drag overlapping glass cards to test composite blur');
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       6. Draggable Windows Logic
+       -------------------------------------------------------------------------- */
+    function makeDraggable(element, handle) {
+      let isDragging = false;
+      let startX = 0, startY = 0;
+      let initialLeft = 0, initialTop = 0;
+
+      handle.addEventListener('mousedown', (e) => {
+        // If auto-orbit was enabled, disable it so manual drag takes over
+        if (state.autoOrbit && element === mainCard) {
+          state.autoOrbit = false;
+          document.getElementById('btnToggleOrbit').classList.remove('active');
+        }
+
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        const rect = element.getBoundingClientRect();
+        initialLeft = rect.left;
+        initialTop = rect.top;
+        element.style.zIndex = 55;
+        if (element === secondaryCard) mainCard.style.zIndex = 50;
+        e.preventDefault();
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        const newX = Math.max(10, Math.min(width - element.offsetWidth - 10, initialLeft + dx));
+        const newY = Math.max(50, Math.min(height - element.offsetHeight - 10, initialTop + dy));
+        element.style.left = `${newX}px`;
+        element.style.top = `${newY}px`;
+
+        if (element === secondaryCard) {
+          document.getElementById('secCoord').textContent = `x: ${Math.round(newX)}px, y: ${Math.round(newY)}px`;
+        }
+      });
+
+      window.addEventListener('mouseup', () => {
+        isDragging = false;
+      });
+    }
+
+    makeDraggable(mainCard, document.getElementById('cardDragHandle'));
+    makeDraggable(secondaryCard, secondaryCard);
+
+    /* --------------------------------------------------------------------------
+       7. Clipboard and Toast Notification
+       -------------------------------------------------------------------------- */
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2500);
+    }
+
+    function copyCss() {
+      const text = document.getElementById('cssCodeOutput').textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('CSS copied to clipboard!');
+      }).catch(() => {
+        showToast('Selection copied!');
+      });
+    }
+
+    // Initialize default styles
+    applyStyles();
+  </script>
+</body>
+</html>
