@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Standalone OffscreenCanvas and Worker requestAnimationFrame() 120fps animation demo with live framerate telemetry." />
+  <title>OffscreenCanvas Worker rAF — 60/120Hz Telemetry Demo</title>
+  <style>
+    :root {
+      --bg-deep: #070b10;
+      --panel-bg: rgba(12, 18, 26, 0.78);
+      --panel-border: rgba(255, 255, 255, 0.11);
+      --text-primary: #edf2f7;
+      --text-secondary: #8fa1b3;
+      --accent-cyan: #38bdf8;
+      --accent-amber: #f59e0b;
+      --accent-emerald: #10b981;
+      --accent-rose: #f43f5e;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-deep);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #stage-canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      cursor: crosshair;
+    }
+
+    /* Floating HUD */
+    .hud-overlay {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      width: min(360px, calc(100vw - 40px));
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+      z-index: 10;
+      user-select: none;
+    }
+
+    .hud-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .hud-header h1 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--text-primary);
+    }
+
+    .hud-subtitle {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--accent-cyan);
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .metric-box {
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+
+    .metric-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .dot-worker { background: var(--accent-emerald); }
+    .dot-main { background: var(--accent-amber); }
+
+    .metric-value {
+      font-family: var(--font-mono);
+      font-size: 1.55rem;
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+    }
+
+    .metric-unit {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-left: 2px;
+    }
+
+    .metric-sub {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .control-row input[type="range"] {
+      width: 140px;
+      accent-color: var(--accent-cyan);
+      cursor: pointer;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    button {
+      flex: 1;
+      font-family: var(--font-sans);
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease, border-color 0.15s ease;
+    }
+
+    button:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.22);
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    button.btn-jank {
+      background: rgba(244, 63, 94, 0.14);
+      border-color: rgba(244, 63, 94, 0.35);
+      color: #fda4af;
+    }
+
+    button.btn-jank:hover {
+      background: rgba(244, 63, 94, 0.24);
+    }
+
+    .status-note {
+      margin-top: 10px;
+      font-size: 0.72rem;
+      line-height: 1.4;
+      color: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="stage-canvas"></canvas>
+
+  <aside class="hud-overlay" aria-label="Framerate and Animation Controls">
+    <div class="hud-header">
+      <h1>OffscreenCanvas Worker</h1>
+      <span class="hud-subtitle" id="status-tag">SurfaceLayer Active</span>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-box">
+        <div class="metric-label">
+          <span class="dot dot-worker"></span>Worker rAF
+        </div>
+        <div class="metric-value">
+          <span id="worker-fps">--</span><span class="metric-unit">fps</span>
+        </div>
+        <div class="metric-sub" id="worker-ms">-- ms / frame</div>
+      </div>
+
+      <div class="metric-box">
+        <div class="metric-label">
+          <span class="dot dot-main"></span>Main rAF
+        </div>
+        <div class="metric-value">
+          <span id="main-fps">--</span><span class="metric-unit">fps</span>
+        </div>
+        <div class="metric-sub" id="main-ms">-- ms / frame</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <label class="control-row" for="particle-slider">
+        <span>Ribbons (<span id="particle-count-label">900</span>)</span>
+        <input id="particle-slider" type="range" min="200" max="2400" step="100" value="900" />
+      </label>
+
+      <div class="btn-row">
+        <button id="jank-main-btn" class="btn-jank" type="button">
+          Freeze Main (300ms)
+        </button>
+        <button id="pulse-btn" type="button">
+          Shockwave
+        </button>
+      </div>
+    </div>
+
+    <p class="status-note">
+      Move pointer to steer the attractor. Even if the main thread is throttled to 60Hz or frozen, the worker submits directly to Viz at full display refresh rate.
+    </p>
+  </aside>
+
+  <script id="worker-source" type="javascript/worker">
+    let canvas = null;
+    let ctx = null;
+    let width = 0;
+    let height = 0;
+    let dpr = 1;
+
+    // Animation & particle state
+    let targetCount = 900;
+    let particles = [];
+    let pointer = { x: 0.5, y: 0.5, active: false, shockwave: 0 };
+
+    // Telemetry state
+    let lastTime = 0;
+    let frameDeltas = new Float64Array(60);
+    let deltaIdx = 0;
+    let deltaCount = 0;
+    let currentFps = 0;
+    let currentAvgMs = 0;
+    let frameCounter = 0;
+
+    // Palette: Deep Ocean Cyan, Warm Amber, Seafoam Emerald, Coral
+    const PALETTE = [
+      '#38bdf8',
+      '#22d3ee',
+      '#34d399',
+      '#f59e0b',
+      '#fb7185',
+      '#e0f2fe'
+    ];
+
+    function createParticle(randomAge = true) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = (0.05 + Math.pow(Math.random(), 0.7) * 0.45) * Math.min(width, height);
+      const cx = width * 0.5 + Math.cos(angle) * radius;
+      const cy = height * 0.5 + Math.sin(angle) * radius;
+      return {
+        x: cx,
+        y: cy,
+        px: cx,
+        py: cy,
+        vx: -Math.sin(angle) * 1.5,
+        vy: Math.cos(angle) * 1.5,
+        speed: 0.65 + Math.random() * 0.85,
+        color: PALETTE[(Math.random() * PALETTE.length) | 0],
+        width: (1.1 + Math.random() * 1.8) * dpr,
+        age: randomAge ? (Math.random() * 300) | 0 : 0,
+        maxAge: 220 + ((Math.random() * 220) | 0)
+      };
+    }
+
+    function syncParticleCount() {
+      while (particles.length < targetCount) {
+        particles.push(createParticle(true));
+      }
+      if (particles.length > targetCount) {
+        particles.length = targetCount;
+      }
+    }
+
+    // Smooth curl-like procedural flow field
+    function sampleField(x, y, t) {
+      const nx = (x - width * 0.5) / (Math.min(width, height) * 0.45);
+      const ny = (y - height * 0.5) / (Math.min(width, height) * 0.45);
+
+      const r2 = nx * nx + ny * ny + 0.001;
+      const r = Math.sqrt(r2);
+
+      // Base orbital swirl + harmonic waves
+      const swirl = 1.6 / (0.35 + r);
+      const waveX = Math.sin(ny * 3.2 + t * 0.9) + Math.cos(nx * 2.1 - t * 0.6);
+      const waveY = Math.cos(nx * 3.2 + t * 0.8) - Math.sin(ny * 2.1 + t * 0.7);
+
+      let fx = (-ny * swirl + waveX * 0.42 - nx * 0.25);
+      let fy = ( nx * swirl + waveY * 0.42 - ny * 0.25);
+
+      // Pointer vortex interaction
+      const px = pointer.x * width;
+      const py = pointer.y * height;
+      const dx = x - px;
+      const dy = y - py;
+      const distSq = dx * dx + dy * dy + 1200 * dpr * dpr;
+      const falloff = (18000 * dpr * dpr) / distSq;
+
+      if (pointer.shockwave > 0.01) {
+        const dist = Math.sqrt(distSq);
+        fx += (dx / dist) * falloff * pointer.shockwave * 6.0;
+        fy += (dy / dist) * falloff * pointer.shockwave * 6.0;
+      } else if (pointer.active) {
+        // Gentle orbital pull around cursor
+        fx += (-dy * 0.0035 - dx * 0.0015) * falloff;
+        fy += ( dx * 0.0035 - dy * 0.0015) * falloff;
+      }
+
+      return { fx, fy };
+    }
+
+    function drawInCanvasHud(now) {
+      const pad = 20 * dpr;
+      const boxW = 280 * dpr;
+      const boxH = 54 * dpr;
+      const x = width - boxW - pad;
+      const y = pad;
+
+      // Top-right on-canvas FPS & motion clarity bar
+      ctx.save();
+      ctx.fillStyle = 'rgba(7, 11, 16, 0.82)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
+      ctx.lineWidth = 1 * dpr;
+      ctx.beginPath();
+      ctx.roundRect(x, y, boxW, boxH, 10 * dpr);
+      ctx.fill();
+      ctx.stroke();
+
+      // FPS text rendered directly on OffscreenCanvas every worker frame
+      ctx.fillStyle = '#10b981';
+      ctx.font = `700 ${Math.round(18 * dpr)}px monospace`;
+      ctx.textBaseline = 'middle';
+      const fpsText = `${currentFps.toFixed(0)} FPS`;
+      ctx.fillText(fpsText, x + 14 * dpr, y + 20 * dpr);
+
+      ctx.fillStyle = '#8fa1b3';
+      ctx.font = `500 ${Math.round(11 * dpr)}px monospace`;
+      ctx.fillText(
+        `Worker rAF (${currentAvgMs.toFixed(2)} ms)`,
+        x + 96 * dpr,
+        y + 20 * dpr
+      );
+
+      // High-speed 120fps motion-clarity scanner bar inside the canvas HUD
+      const barX = x + 14 * dpr;
+      const barY = y + 38 * dpr;
+      const barW = boxW - 28 * dpr;
+      const barH = 6 * dpr;
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.fillRect(barX, barY, barW, barH);
+
+      const phase = (now * 0.0012) % 2;
+      const norm = phase < 1 ? phase : 2 - phase;
+      const puckW = 28 * dpr;
+      const puckX = barX + norm * (barW - puckW);
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(puckX, barY, puckW, barH);
+      ctx.restore();
+    }
+
+    function tick(now) {
+      if (!ctx) return;
+
+      // 1. Update framerate telemetry
+      if (lastTime > 0) {
+        const dt = now - lastTime;
+        if (dt > 0 && dt < 500) {
+          frameDeltas[deltaIdx] = dt;
+          deltaIdx = (deltaIdx + 1) % frameDeltas.length;
+          if (deltaCount < frameDeltas.length) deltaCount++;
+
+          let sum = 0;
+          for (let i = 0; i < deltaCount; i++) sum += frameDeltas[i];
+          currentAvgMs = sum / deltaCount;
+          currentFps = 1000 / currentAvgMs;
+        }
+      }
+      lastTime = now;
+      frameCounter++;
+
+      const dtScale = Math.min(2.5, Math.max(0.25, (currentAvgMs || 8.33) / 16.667));
+      const t = now * 0.001;
+      pointer.shockwave *= Math.pow(0.88, dtScale);
+
+      // 2. Trail fade pass
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = 'rgba(7, 11, 16, 0.14)';
+      ctx.fillRect(0, 0, width, height);
+
+      // 3. Additive glowing ribbons
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.lineCap = 'round';
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.px = p.x;
+        p.py = p.y;
+
+        const { fx, fy } = sampleField(p.x, p.y, t);
+        p.vx = p.vx * 0.92 + fx * 0.38 * p.speed;
+        p.vy = p.vy * 0.92 + fy * 0.38 * p.speed;
+
+        p.x += p.vx * dtScale * 2.4 * dpr;
+        p.y += p.vy * dtScale * 2.4 * dpr;
+        p.age++;
+
+        if (
+          p.age > p.maxAge ||
+          p.x < -50 || p.x > width + 50 ||
+          p.y < -50 || p.y > height + 50
+        ) {
+          particles[i] = createParticle(false);
+          continue;
+        }
+
+        const lifeRatio = p.age / p.maxAge;
+        const alpha = Math.sin(lifeRatio * Math.PI) * 0.85;
+
+        ctx.strokeStyle = p.color;
+        ctx.globalAlpha = alpha;
+        ctx.lineWidth = p.width;
+        ctx.beginPath();
+        ctx.moveTo(p.px, p.py);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+      }
+
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+
+      // 4. Draw in-canvas live FPS & motion clarity indicator
+      drawInCanvasHud(now);
+
+      // 5. Periodically send telemetry to main thread DOM HUD
+      if (frameCounter % 6 === 0) {
+        self.postMessage({
+          type: 'telemetry',
+          fps: currentFps,
+          ms: currentAvgMs
+        });
+      }
+
+      self.requestAnimationFrame(tick);
+    }
+
+    self.onmessage = (e) => {
+      const msg = e.data;
+      if (msg.type === 'init') {
+        canvas = msg.canvas;
+        width = msg.width;
+        height = msg.height;
+        dpr = msg.dpr || 1;
+        canvas.width = width;
+        canvas.height = height;
+        ctx = canvas.getContext('2d', { alpha: false });
+
+        ctx.fillStyle = '#070b10';
+        ctx.fillRect(0, 0, width, height);
+
+        syncParticleCount();
+        self.requestAnimationFrame(tick);
+      } else if (msg.type === 'resize') {
+        width = msg.width;
+        height = msg.height;
+        dpr = msg.dpr || 1;
+        if (canvas) {
+          canvas.width = width;
+          canvas.height = height;
+        }
+      } else if (msg.type === 'pointer') {
+        pointer.x = msg.x;
+        pointer.y = msg.y;
+        pointer.active = msg.active;
+      } else if (msg.type === 'shockwave') {
+        pointer.shockwave = 1.0;
+      } else if (msg.type === 'count') {
+        targetCount = msg.count;
+        syncParticleCount();
+      }
+    };
+  </script>
+
+  <script>
+    (() => {
+      const canvasEl = document.getElementById('stage-canvas');
+      const workerFpsEl = document.getElementById('worker-fps');
+      const workerMsEl = document.getElementById('worker-ms');
+      const mainFpsEl = document.getElementById('main-fps');
+      const mainMsEl = document.getElementById('main-ms');
+      const sliderEl = document.getElementById('particle-slider');
+      const countLabelEl = document.getElementById('particle-count-label');
+      const jankBtn = document.getElementById('jank-main-btn');
+      const pulseBtn = document.getElementById('pulse-btn');
+
+      // 1. Transfer control of <canvas> to OffscreenCanvas
+      const offscreen = canvasEl.transferControlToOffscreen();
+
+      // 2. Spawn Dedicated Worker from inline script
+      const workerCode = document.getElementById('worker-source').textContent;
+      const blob = new Blob([workerCode], { type: 'application/javascript' });
+      const worker = new Worker(URL.createObjectURL(blob));
+
+      const getCanvasMetrics = () => {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        return {
+          width: Math.floor(window.innerWidth * dpr),
+          height: Math.floor(window.innerHeight * dpr),
+          dpr
+        };
+      };
+
+      const initialMetrics = getCanvasMetrics();
+      worker.postMessage(
+        {
+          type: 'init',
+          canvas: offscreen,
+          width: initialMetrics.width,
+          height: initialMetrics.height,
+          dpr: initialMetrics.dpr
+        },
+        [offscreen]
+      );
+
+      // 3. Receive Worker rAF FPS updates
+      worker.onmessage = (e) => {
+        if (e.data.type === 'telemetry') {
+          workerFpsEl.textContent = Math.round(e.data.fps);
+          workerMsEl.textContent = `${e.data.ms.toFixed(2)} ms / frame`;
+        }
+      };
+
+      // 4. Track Main Thread rAF FPS for side-by-side comparison (e.g. 60/120Hz throttling)
+      const mainDeltas = new Float64Array(45);
+      let mainIdx = 0;
+      let mainCount = 0;
+      let lastMainTime = 0;
+      let mainFrameTick = 0;
+
+      function measureMainThreadRaf(now) {
+        if (lastMainTime > 0) {
+          const dt = now - lastMainTime;
+          if (dt > 0) {
+            mainDeltas[mainIdx] = dt;
+            mainIdx = (mainIdx + 1) % mainDeltas.length;
+            if (mainCount < mainDeltas.length) mainCount++;
+
+            if (++mainFrameTick % 6 === 0) {
+              let sum = 0;
+              for (let i = 0; i < mainCount; i++) sum += mainDeltas[i];
+              const avgMs = sum / mainCount;
+              mainFpsEl.textContent = Math.round(1000 / avgMs);
+              mainMsEl.textContent = `${avgMs.toFixed(2)} ms / frame`;
+            }
+          }
+        }
+        lastMainTime = now;
+        window.requestAnimationFrame(measureMainThreadRaf);
+      }
+      window.requestAnimationFrame(measureMainThreadRaf);
+
+      // 5. Forward Resize & Pointer Events to Worker
+      window.addEventListener('resize', () => {
+        const m = getCanvasMetrics();
+        worker.postMessage({
+          type: 'resize',
+          width: m.width,
+          height: m.height,
+          dpr: m.dpr
+        });
+      });
+
+      window.addEventListener('pointermove', (e) => {
+        worker.postMessage({
+          type: 'pointer',
+          x: e.clientX / window.innerWidth,
+          y: e.clientY / window.innerHeight,
+          active: true
+        });
+      }, { passive: true });
+
+      window.addEventListener('pointerleave', () => {
+        worker.postMessage({
+          type: 'pointer',
+          x: 0.5,
+          y: 0.5,
+          active: false
+        });
+      });
+
+      window.addEventListener('pointerdown', (e) => {
+        if (e.target === canvasEl) {
+          worker.postMessage({ type: 'shockwave' });
+        }
+      });
+
+      sliderEl.addEventListener('input', () => {
+        const count = Number(sliderEl.value);
+        countLabelEl.textContent = count;
+        worker.postMessage({ type: 'count', count });
+      });
+
+      pulseBtn.addEventListener('click', () => {
+        worker.postMessage({ type: 'shockwave' });
+      });
+
+      // Intentionally block the main thread for 300ms to prove Worker OffscreenCanvas keeps running at 120fps
+      jankBtn.addEventListener('click', () => {
+        const start = performance.now();
+        while (performance.now() - start < 300) {
+          // Busy-wait on main thread
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
