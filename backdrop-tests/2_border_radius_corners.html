@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Backdrop Filter: Border Radius & Rounded Corner Test</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 30px;
+      font-family: -apple-system, system-ui, sans-serif;
+      background: #090a0f;
+      color: #fff;
+    }
+    .instructions {
+      max-width: 920px;
+      margin-bottom: 20px;
+      background: #141721;
+      border: 1px solid #282d3d;
+      padding: 16px 20px;
+      border-radius: 8px;
+      line-height: 1.5;
+    }
+    .pass { color: #10b981; font-weight: bold; }
+    .fail { color: #ef4444; font-weight: bold; }
+
+    .controls-panel {
+      max-width: 920px;
+      margin-bottom: 20px;
+      background: #141721;
+      border: 1px solid #282d3d;
+      padding: 14px 20px;
+      border-radius: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .ctrl-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .ctrl-item label {
+      color: #94a3b8;
+      font-weight: 500;
+    }
+
+    .val-tag {
+      font-family: monospace;
+      color: #60a5fa;
+      font-weight: 600;
+      min-width: 45px;
+    }
+
+    button {
+      background: #252b3b;
+      color: #fff;
+      border: 1px solid #3b4258;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    button:hover {
+      background: #323a4f;
+      border-color: #4b5563;
+    }
+
+    button.active-toggle {
+      background: #2563eb;
+      border-color: #3b82f6;
+    }
+
+    select {
+      background: #252b3b;
+      color: #fff;
+      border: 1px solid #3b4258;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .stage {
+      position: relative;
+      width: 920px;
+      padding: 40px 24px;
+      border-radius: 12px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      border: 2px solid #334155;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    .pattern-vibrant-stripes {
+      background: repeating-linear-gradient(
+        45deg,
+        #dc2626, #dc2626 24px,
+        #d97706 24px, #d97706 48px,
+        #059669 48px, #059669 72px,
+        #0891b2 72px, #0891b2 96px,
+        #2563eb 96px, #2563eb 120px,
+        #7c3aed 120px, #7c3aed 144px
+      );
+    }
+
+    .pattern-high-contrast-checkers {
+      background-image:
+        linear-gradient(45deg, #f1f5f9 25%, transparent 25%),
+        linear-gradient(-45deg, #f1f5f9 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #f1f5f9 75%),
+        linear-gradient(-45deg, transparent 75%, #f1f5f9 75%);
+      background-size: 28px 28px;
+      background-position: 0 0, 0 14px, 14px -14px, -14px 0px;
+      background-color: #0f172a;
+    }
+
+    .pattern-fine-grid {
+      background-size: 32px 32px;
+      background-image:
+        linear-gradient(to right, #38bdf8 2px, transparent 2px),
+        linear-gradient(to bottom, #38bdf8 2px, transparent 2px);
+      background-color: #090d16;
+    }
+
+    .card {
+      height: 160px;
+      /* Zero background opacity by default */
+      background: rgba(255, 255, 255, 0.0);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      border: 2px solid rgba(255, 255, 255, 0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    }
+
+    .card span {
+      margin-top: 8px;
+      font-size: 11px;
+      font-family: monospace;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 3px 8px;
+      border-radius: 4px;
+      color: #38bdf8;
+      text-shadow: none;
+    }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 12px;
+      color: #60a5fa;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .back-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="back-link">&larr; Back to Test Suite</a>
+  <h1>Backdrop Filter - Border Radius & Corner Masking</h1>
+  <div class="instructions">
+    <p><strong>Test Objective:</strong> Ensure that elements with various <code>border-radius</code> values have their backdrop blur strictly masked along their rounded contour via CoreAnimation layer masks.</p>
+    <p><span class="pass">PASS:</span> The blur follows the curved border exactly; the outside diagonal stripes remain sharp up to the border curve with no square blur clipping artifacts.</p>
+    <p><span class="fail">FAIL:</span> The blur spills over the rounded corners as a square bounding box.</p>
+  </div>
+
+  <div class="controls-panel">
+    <div class="ctrl-item">
+      <label for="radius">Blur Radius:</label>
+      <input type="range" id="radius" min="0" max="60" value="30" oninput="setRadius(this.value)">
+      <span class="val-tag" id="radiusVal">30px</span>
+    </div>
+
+    <div class="ctrl-item">
+      <label for="opacity">Element Background Opacity:</label>
+      <input type="range" id="opacity" min="0" max="80" value="0" oninput="setOpacity(this.value)">
+      <span class="val-tag" id="opacityVal">0% (Pure Blur)</span>
+    </div>
+
+    <div class="ctrl-item">
+      <button id="toggleBlurBtn" class="active-toggle" onclick="toggleBlur()">Blur: ON</button>
+    </div>
+
+    <div class="ctrl-item">
+      <label for="patternSelect">Pattern:</label>
+      <select id="patternSelect" onchange="setPattern(this.value)">
+        <option value="pattern-vibrant-stripes">Vibrant Rainbow Stripes</option>
+        <option value="pattern-high-contrast-checkers">High-Contrast Checkerboard</option>
+        <option value="pattern-fine-grid">Bright Cyan 2px Grid</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="stage pattern-vibrant-stripes" id="stage">
+    <div class="card" style="border-radius: 8px;">
+      Small Radius
+      <span>border-radius: 8px</span>
+    </div>
+
+    <div class="card" style="border-radius: 24px;">
+      Medium Radius
+      <span>border-radius: 24px</span>
+    </div>
+
+    <div class="card" style="border-radius: 50px;">
+      Large Radius
+      <span>border-radius: 50px</span>
+    </div>
+
+    <div class="card" style="border-radius: 9999px;">
+      Capsule / Pill
+      <span>border-radius: 9999px</span>
+    </div>
+
+    <div class="card" style="border-radius: 40px 10px 40px 10px;">
+      Asymmetric
+      <span>40px 10px 40px 10px</span>
+    </div>
+
+    <div class="card" style="border-radius: 50%; width: 160px; height: 160px; margin: 0 auto;">
+      Circle
+      <span>border-radius: 50%</span>
+    </div>
+  </div>
+
+  <script>
+    let currentBlur = 30;
+    let currentOpacity = 0;
+    let blurEnabled = true;
+
+    function applyStyles() {
+      document.querySelectorAll('.card').forEach(c => {
+        if (blurEnabled && currentBlur > 0) {
+          c.style.backdropFilter = `blur(${currentBlur}px)`;
+          c.style.webkitBackdropFilter = `blur(${currentBlur}px)`;
+        } else {
+          c.style.backdropFilter = 'none';
+          c.style.webkitBackdropFilter = 'none';
+        }
+        c.style.background = `rgba(255, 255, 255, ${currentOpacity / 100})`;
+      });
+    }
+
+    function setRadius(val) {
+      currentBlur = parseInt(val, 10);
+      document.getElementById('radiusVal').textContent = currentBlur + 'px';
+      if (!blurEnabled && currentBlur > 0) {
+        blurEnabled = true;
+        updateToggleBtn();
+      }
+      applyStyles();
+    }
+
+    function setOpacity(val) {
+      currentOpacity = parseInt(val, 10);
+      const tag = document.getElementById('opacityVal');
+      tag.textContent = currentOpacity === 0 ? '0% (Pure Blur)' : currentOpacity + '%';
+      applyStyles();
+    }
+
+    function toggleBlur() {
+      blurEnabled = !blurEnabled;
+      updateToggleBtn();
+      applyStyles();
+    }
+
+    function updateToggleBtn() {
+      const btn = document.getElementById('toggleBlurBtn');
+      if (blurEnabled) {
+        btn.textContent = 'Blur: ON';
+        btn.className = 'active-toggle';
+      } else {
+        btn.textContent = 'Blur: OFF';
+        btn.className = '';
+      }
+    }
+
+    function setPattern(pat) {
+      document.getElementById('stage').className = 'stage ' + pat;
+    }
+
+    applyStyles();
+  </script>
+</body>
+</html>

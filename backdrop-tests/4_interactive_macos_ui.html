@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Backdrop Filter: macOS Delegated Compositing Showcase</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: -apple-system, system-ui, sans-serif;
+      background: #000;
+      color: #fff;
+      user-select: none;
+    }
+
+    .top-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 52px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 18px;
+      z-index: 100;
+      font-size: 13px;
+    }
+
+    .canvas-bg {
+      position: absolute;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .window {
+      position: absolute;
+      width: 440px;
+      height: 280px;
+      top: 140px;
+      left: 100px;
+      /* Zero background opacity by default for crystal clear blur */
+      background: rgba(255, 255, 255, 0.0);
+      backdrop-filter: blur(35px);
+      -webkit-backdrop-filter: blur(35px);
+      border: 1.5px solid rgba(255, 255, 255, 0.4);
+      border-radius: 16px;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.4);
+      cursor: grab;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .window:active { cursor: grabbing; }
+
+    .win-header {
+      height: 38px;
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-red { background: #ff5f56; }
+    .dot-yellow { background: #ffbd2e; }
+    .dot-green { background: #27c93f; }
+
+    .win-title {
+      flex: 1;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 600;
+      margin-right: 32px;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    }
+
+    .win-body {
+      padding: 20px;
+      line-height: 1.6;
+      font-size: 13px;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+    }
+
+    .badge {
+      display: inline-block;
+      background: rgba(59, 130, 246, 0.2);
+      color: #93c5fd;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-family: monospace;
+    }
+
+    .fps-meter {
+      margin-left: auto;
+      font-family: monospace;
+      font-size: 12px;
+      color: #10b981;
+    }
+
+    .ctrl-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .ctrl-item label { color: #94a3b8; }
+    .val-tag { font-family: monospace; color: #60a5fa; font-weight: 600; min-width: 35px; }
+
+    button {
+      background: #252b3b;
+      color: #fff;
+      border: 1px solid #3b4258;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    button.active-toggle { background: #2563eb; border-color: #3b82f6; }
+
+    .back-link {
+      color: #60a5fa;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .back-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <a href="index.html" class="back-link">&larr; Suite</a>
+    <strong>macOS Delegated Compositing</strong>
+    <span class="badge">CABackdropLayer</span>
+
+    <div class="ctrl-item">
+      <label for="blurRadius">Blur:</label>
+      <input type="range" id="blurRadius" min="0" max="80" value="35" oninput="setBlur(this.value)">
+      <span class="val-tag" id="blurVal">35px</span>
+    </div>
+
+    <div class="ctrl-item">
+      <label for="winOpacity">Opacity:</label>
+      <input type="range" id="winOpacity" min="0" max="60" value="0" oninput="setOpacity(this.value)">
+      <span class="val-tag" id="opacityVal">0%</span>
+    </div>
+
+    <button id="toggleBlurBtn" class="active-toggle" onclick="toggleBlur()">Blur: ON</button>
+
+    <div class="fps-meter">FPS: <span id="fps">60</span></div>
+  </div>
+
+  <canvas class="canvas-bg" id="bgCanvas"></canvas>
+
+  <div class="window" id="win">
+    <div class="win-header" id="winHeader">
+      <div class="dot dot-red"></div>
+      <div class="dot dot-yellow"></div>
+      <div class="dot dot-green"></div>
+      <div class="win-title">Hardware Blurred Surface</div>
+    </div>
+    <div class="win-body">
+      <h3 style="margin-bottom: 8px;">GPU CoreAnimation Backdrop Filter</h3>
+      <p>
+        Notice how this window glides over the animated background with 60 FPS fluidity.
+        Background opacity is 0% by default, so all softening is 100% genuine CoreAnimation blur.
+      </p>
+      <div style="margin-top: 14px; font-family: monospace; font-size: 11px; color: rgba(255,255,255,0.85);">
+        &bull; Zero edge blur bleed<br>
+        &bull; Exact 16px corner mask
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentBlur = 35;
+    let currentOpacity = 0;
+    let blurEnabled = true;
+
+    function applyStyles() {
+      const win = document.getElementById('win');
+      if (blurEnabled && currentBlur > 0) {
+        win.style.backdropFilter = `blur(${currentBlur}px)`;
+        win.style.webkitBackdropFilter = `blur(${currentBlur}px)`;
+      } else {
+        win.style.backdropFilter = 'none';
+        win.style.webkitBackdropFilter = 'none';
+      }
+      win.style.background = `rgba(255, 255, 255, ${currentOpacity / 100})`;
+    }
+
+    function setBlur(val) {
+      currentBlur = parseInt(val, 10);
+      document.getElementById('blurVal').textContent = currentBlur + 'px';
+      if (!blurEnabled && currentBlur > 0) {
+        blurEnabled = true;
+        updateToggleBtn();
+      }
+      applyStyles();
+    }
+
+    function setOpacity(val) {
+      currentOpacity = parseInt(val, 10);
+      document.getElementById('opacityVal').textContent = currentOpacity + '%';
+      applyStyles();
+    }
+
+    function toggleBlur() {
+      blurEnabled = !blurEnabled;
+      updateToggleBtn();
+      applyStyles();
+    }
+
+    function updateToggleBtn() {
+      const btn = document.getElementById('toggleBlurBtn');
+      if (blurEnabled) {
+        btn.textContent = 'Blur: ON';
+        btn.className = 'active-toggle';
+      } else {
+        btn.textContent = 'Blur: OFF';
+        btn.className = '';
+      }
+    }
+
+    // Animated particles background
+    const canvas = document.getElementById('bgCanvas');
+    const ctx = canvas.getContext('2d');
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+
+    window.addEventListener('resize', () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    });
+
+    const particles = [];
+    const colors = ['#ec4899', '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b'];
+
+    for (let i = 0; i < 45; i++) {
+      particles.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        r: 30 + Math.random() * 60,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2
+      });
+    }
+
+    function renderCanvas() {
+      ctx.fillStyle = '#050608';
+      ctx.fillRect(0, 0, width, height);
+
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < -p.r) p.x = width + p.r;
+        if (p.x > width + p.r) p.x = -p.r;
+        if (p.y < -p.r) p.y = height + p.r;
+        if (p.y > height + p.r) p.y = -p.r;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = 0.85;
+        ctx.fill();
+      });
+
+      requestAnimationFrame(renderCanvas);
+    }
+    requestAnimationFrame(renderCanvas);
+
+    // Draggable window logic
+    const win = document.getElementById('win');
+    const header = document.getElementById('winHeader');
+    let isDragging = false;
+    let startX, startY, origX, origY;
+
+    header.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      const rect = win.getBoundingClientRect();
+      origX = rect.left;
+      origY = rect.top;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      win.style.left = `${origX + (e.clientX - startX)}px`;
+      win.style.top = `${origY + (e.clientY - startY)}px`;
+    });
+
+    window.addEventListener('mouseup', () => { isDragging = false; });
+
+    // FPS meter
+    let frames = 0;
+    let prevTime = performance.now();
+    const fpsDisplay = document.getElementById('fps');
+
+    function updateFps(now) {
+      frames++;
+      if (now - prevTime >= 1000) {
+        fpsDisplay.textContent = Math.round((frames * 1000) / (now - prevTime));
+        frames = 0;
+        prevTime = now;
+      }
+      requestAnimationFrame(updateFps);
+    }
+    requestAnimationFrame(updateFps);
+
+    applyStyles();
+  </script>
+</body>
+</html>

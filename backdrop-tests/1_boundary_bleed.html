@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Backdrop Filter: Sharp Boundary & Bleed Test</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 30px;
+      font-family: -apple-system, system-ui, sans-serif;
+      background: #090a0f;
+      color: #fff;
+    }
+    .instructions {
+      max-width: 860px;
+      margin-bottom: 20px;
+      background: #141721;
+      border: 1px solid #282d3d;
+      padding: 16px 20px;
+      border-radius: 8px;
+      line-height: 1.5;
+    }
+    .pass { color: #10b981; font-weight: bold; }
+    .fail { color: #ef4444; font-weight: bold; }
+
+    .controls-panel {
+      max-width: 860px;
+      margin-bottom: 20px;
+      background: #141721;
+      border: 1px solid #282d3d;
+      padding: 14px 20px;
+      border-radius: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .ctrl-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .ctrl-item label {
+      color: #94a3b8;
+      font-weight: 500;
+    }
+
+    .val-tag {
+      font-family: monospace;
+      color: #60a5fa;
+      font-weight: 600;
+      min-width: 45px;
+    }
+
+    button {
+      background: #252b3b;
+      color: #fff;
+      border: 1px solid #3b4258;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    button:hover {
+      background: #323a4f;
+      border-color: #4b5563;
+    }
+
+    button.active-toggle {
+      background: #2563eb;
+      border-color: #3b82f6;
+    }
+
+    select {
+      background: #252b3b;
+      color: #fff;
+      border: 1px solid #3b4258;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .stage {
+      position: relative;
+      width: 860px;
+      height: 520px;
+      border: 2px solid #334155;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* High-contrast crisp patterns */
+    .pattern-high-contrast-checkers {
+      background-image:
+        linear-gradient(45deg, #e2e8f0 25%, transparent 25%),
+        linear-gradient(-45deg, #e2e8f0 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #e2e8f0 75%),
+        linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
+      background-size: 28px 28px;
+      background-position: 0 0, 0 14px, 14px -14px, -14px 0px;
+      background-color: #0f172a;
+    }
+
+    .pattern-vibrant-stripes {
+      background: repeating-linear-gradient(
+        -45deg,
+        #ef4444, #ef4444 24px,
+        #f59e0b 24px, #f59e0b 48px,
+        #10b981 48px, #10b981 72px,
+        #06b6d4 72px, #06b6d4 96px,
+        #3b82f6 96px, #3b82f6 120px,
+        #8b5cf6 120px, #8b5cf6 144px
+      );
+    }
+
+    .pattern-fine-grid {
+      background-size: 32px 32px;
+      background-image:
+        linear-gradient(to right, #38bdf8 2px, transparent 2px),
+        linear-gradient(to bottom, #38bdf8 2px, transparent 2px);
+      background-color: #090d16;
+    }
+
+    .pattern-subtle-checkers {
+      background-image:
+        linear-gradient(45deg, #333 25%, transparent 25%),
+        linear-gradient(-45deg, #333 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #333 75%),
+        linear-gradient(-45deg, transparent 75%, #333 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+      background-color: #111;
+    }
+
+    .filter-box {
+      width: 440px;
+      height: 280px;
+      /* Completely transparent by default so blur is 100% visible */
+      background: rgba(255, 255, 255, 0.0);
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
+      border: 3px solid #ff2222;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      border-radius: 0;
+      color: #fff;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9), 0 0 2px rgba(0, 0, 0, 1);
+    }
+
+    .filter-box h2 {
+      margin: 0 0 10px 0;
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .filter-box p {
+      margin: 4px 0;
+      font-size: 13px;
+      max-width: 340px;
+      line-height: 1.4;
+    }
+
+    .pill-badge {
+      display: inline-block;
+      margin-top: 12px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-family: monospace;
+      color: #38bdf8;
+      text-shadow: none;
+    }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 12px;
+      color: #60a5fa;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .back-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="back-link">&larr; Back to Test Suite</a>
+  <h1>Backdrop Filter - Sharp Boundary & Outward Bleed Test</h1>
+  <div class="instructions">
+    <p><strong>Test Objective:</strong> Ensure that the blur effect is strictly constrained to the interior of the element and does NOT bleed outward past the red 3px border.</p>
+    <p><span class="pass">PASS:</span> The background pattern outside the red border remains 100% crisp and unblurred right up to the 3px boundary.</p>
+    <p><span class="fail">FAIL:</span> A hazy blur halos outside the red border into the surrounding background pattern.</p>
+  </div>
+
+  <div class="controls-panel">
+    <div class="ctrl-item">
+      <label for="radius">Blur Radius:</label>
+      <input type="range" id="radius" min="0" max="80" value="40" oninput="setRadius(this.value)">
+      <span class="val-tag" id="radiusVal">40px</span>
+    </div>
+
+    <div class="ctrl-item">
+      <label for="opacity">Element Background Opacity:</label>
+      <input type="range" id="opacity" min="0" max="80" value="0" oninput="setOpacity(this.value)">
+      <span class="val-tag" id="opacityVal">0% (Pure Blur)</span>
+    </div>
+
+    <div class="ctrl-item">
+      <button id="toggleBlurBtn" class="active-toggle" onclick="toggleBlur()">Blur: ON</button>
+    </div>
+
+    <div class="ctrl-item">
+      <label for="patternSelect">Background Pattern:</label>
+      <select id="patternSelect" onchange="setPattern(this.value)">
+        <option value="pattern-high-contrast-checkers">High-Contrast Checkerboard (White / Dark)</option>
+        <option value="pattern-vibrant-stripes">Vibrant Color Stripes (Rainbow)</option>
+        <option value="pattern-fine-grid">Bright Cyan 2px Grid</option>
+        <option value="pattern-subtle-checkers">Dark Subtle Checkerboard</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="stage pattern-high-contrast-checkers" id="stage">
+    <div class="filter-box" id="box">
+      <h2>Blurred Interior</h2>
+      <p>Inside: smoothly blurred background pattern.</p>
+      <p>Outside red line: perfectly crisp pattern with zero bleed.</p>
+      <div class="pill-badge" id="statusBadge">CABackdropLayer: blur(40px) | Opacity: 0%</div>
+    </div>
+  </div>
+
+  <script>
+    let currentBlur = 40;
+    let currentOpacity = 0;
+    let blurEnabled = true;
+
+    function applyStyles() {
+      const b = document.getElementById('box');
+      if (blurEnabled && currentBlur > 0) {
+        b.style.backdropFilter = `blur(${currentBlur}px)`;
+        b.style.webkitBackdropFilter = `blur(${currentBlur}px)`;
+      } else {
+        b.style.backdropFilter = 'none';
+        b.style.webkitBackdropFilter = 'none';
+      }
+      b.style.background = `rgba(255, 255, 255, ${currentOpacity / 100})`;
+
+      const badge = document.getElementById('statusBadge');
+      const blurStr = blurEnabled ? `blur(${currentBlur}px)` : 'none (disabled)';
+      badge.textContent = `CABackdropLayer: ${blurStr} | Opacity: ${currentOpacity}%`;
+    }
+
+    function setRadius(val) {
+      currentBlur = parseInt(val, 10);
+      document.getElementById('radiusVal').textContent = currentBlur + 'px';
+      if (!blurEnabled && currentBlur > 0) {
+        blurEnabled = true;
+        updateToggleBtn();
+      }
+      applyStyles();
+    }
+
+    function setOpacity(val) {
+      currentOpacity = parseInt(val, 10);
+      const tag = document.getElementById('opacityVal');
+      tag.textContent = currentOpacity === 0 ? '0% (Pure Blur)' : currentOpacity + '%';
+      applyStyles();
+    }
+
+    function toggleBlur() {
+      blurEnabled = !blurEnabled;
+      updateToggleBtn();
+      applyStyles();
+    }
+
+    function updateToggleBtn() {
+      const btn = document.getElementById('toggleBlurBtn');
+      if (blurEnabled) {
+        btn.textContent = 'Blur: ON';
+        btn.className = 'active-toggle';
+      } else {
+        btn.textContent = 'Blur: OFF';
+        btn.className = '';
+      }
+    }
+
+    function setPattern(pat) {
+      document.getElementById('stage').className = 'stage ' + pat;
+    }
+
+    applyStyles();
+  </script>
+</body>
+</html>
