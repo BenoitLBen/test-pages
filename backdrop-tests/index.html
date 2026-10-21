@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CoreAnimation Backdrop Filter Test Suite</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 40px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #0d0f14;
+      color: #f0f2f5;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      color: #9aa0a6;
+      font-size: 16px;
+      margin-bottom: 32px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    .card {
+      background: #1c1e24;
+      border: 1px solid #2e3340;
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.15s, border-color 0.15s;
+      text-decoration: none;
+      color: inherit;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: #3b82f6;
+    }
+    .card h2 {
+      font-size: 18px;
+      margin-bottom: 8px;
+      color: #60a5fa;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card p {
+      font-size: 13px;
+      color: #9aa0a6;
+      margin-bottom: 16px;
+    }
+    .tag {
+      font-size: 11px;
+      font-family: monospace;
+      background: rgba(59, 130, 246, 0.15);
+      color: #93c5fd;
+      padding: 3px 8px;
+      border-radius: 6px;
+      align-self: flex-start;
+    }
+    .instructions {
+      background: #15171c;
+      border: 1px solid #262933;
+      padding: 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      color: #cbd5e1;
+    }
+    code {
+      background: #222631;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      color: #38bdf8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>CoreAnimation Backdrop Filter Test Suite</h1>
+    <p class="subtitle">Visual verification and test cases for macOS delegated compositing backdrop filter support.</p>
+
+    <div class="grid">
+      <a href="1_boundary_bleed.html" class="card">
+        <div>
+          <h2>1. Boundary Bleed Test</h2>
+          <p>Verifies that the gaussian blur is strictly constrained to the element's rectangular bounds and does not bleed into the outer region. Pass criteria: sharp outer checkerboard up to the 1px red marker.</p>
+        </div>
+        <span class="tag">Tests CALayer.mask & inputRadius</span>
+      </a>
+
+      <a href="2_border_radius_corners.html" class="card">
+        <div>
+          <h2>2. Border Radius & Corners Test</h2>
+          <p>Exercises rounded corners (small 8px, medium 24px, large 50px, pill/capsule 9999px, and circle 50%) to verify that CoreAnimation layer mask cuts the blur along curved boundaries.</p>
+        </div>
+        <span class="tag">Tests SkRRect & backdrop_filter_bounds</span>
+      </a>
+
+      <a href="3_zoom_scaling.html" class="card">
+        <div>
+          <h2>3. Zoom & Retina Scale Test</h2>
+          <p>Calibrates blur radius behavior when zooming in (Cmd+) or viewing on high-DPI Retina screens, ensuring blur radius is divided by tree scale factor rather than growing quadratically.</p>
+        </div>
+        <span class="tag">Tests scale_factor_ normalization</span>
+      </a>
+
+      <a href="4_interactive_macos_ui.html" class="card">
+        <div>
+          <h2>4. macOS Glassmorphic Interface</h2>
+          <p>A full macOS-style floating frosted glass window over an animated high-contrast particle canvas to evaluate real-time dragging performance, frame rates, and visual smoothness.</p>
+        </div>
+        <span class="tag">Tests CABackdropLayer delegated compositing</span>
+      </a>
+    </div>
+
+    <div class="instructions">
+      <h3 style="margin-bottom: 8px; font-size: 15px;">How to Verify Delegated Compositing via Tracing:</h3>
+      <ol style="margin-left: 20px; display: flex; flex-direction: column; gap: 6px;">
+        <li>Launch Chromium with: <code>--enable-features=CoreAnimationRenderer</code></li>
+        <li>Open <code>chrome://tracing</code> in a new tab.</li>
+        <li>Record a trace with category <code>viz</code> selected.</li>
+        <li>Interact with one of the test pages above.</li>
+        <li>Stop tracing and search for <code>OverlayProcessorMac</code> or the instant trace events to verify that the RenderPassDrawQuad is promoted to a CALayer overlay.</li>
+      </ol>
+    </div>
+  </div>
+</body>
+</html>
